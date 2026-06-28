@@ -10,13 +10,26 @@ int _get_height(AVLNode *node) {
     return node->height;
 }
 
-AVLNode *_create_node(int value) {
+AVLNode *_create_node(char* key, char *value) {
+    if (key == NULL || value == NULL) {
+        debug("Key or value is NULL in _create_node.");
+        return NULL;
+    }
     AVLNode *node = malloc(sizeof(AVLNode));
     if (!node) {
         debug("Failed to allocate memory for AVLNode.");
         return NULL;
     }
-    node->value = value;
+
+    node->key = strdup(key);
+    node->value = strdup(value);
+    if (!node->key || !node->value) {
+        debug("Failed to allocate memory for key or value in AVLNode.");
+        free(node->key);
+        free(node->value);
+        free(node);
+        return NULL;
+    }
     node->height = 1;
     node->left = NULL;
     node->right = NULL;
@@ -61,13 +74,13 @@ AVLNode *_double_right_rotate(AVLNode *node) {
     return _simple_right_rotate(node);
 }
 
-AVLNode *_insert(AVLNode *node, int value) {
-    if (node == NULL) return _create_node(value);
+AVLNode *_insert(AVLNode *node, char *key, char *value) {
+    if (node == NULL) return _create_node(key, value);
 
-    if (value > node->value) node->right = _insert(node->right, value);
-    else if (value < node->value) node->left = _insert(node->left, value);
+    if (strcmp(key, node->key) > 0) node->right = _insert(node->right, key, value);
+    else if (strcmp(key, node->key) < 0) node->left = _insert(node->left, key, value);
     else {
-        debug("Value already exists in the AVLNode.");
+        debug("Key already exists in the AVLNode.");
         return node;
     }
 
@@ -76,10 +89,10 @@ AVLNode *_insert(AVLNode *node, int value) {
 
     node->height = 1 + (l_height > r_height ? l_height : r_height);
     int balance_factor = _get_height(node->left) - _get_height(node->right);
-    if (balance_factor > 1 && value < node->left->value) return _simple_right_rotate(node);
-    if (balance_factor < -1 && value > node->right->value) return _simple_left_rotate(node);
-    if (balance_factor > 1 && value > node->left->value) return _double_right_rotate(node);
-    if (balance_factor < -1 && value < node->right->value) return _double_left_rotate(node);
+    if (balance_factor > 1 && strcmp(key, node->left->key) < 0) return _simple_right_rotate(node);
+    if (balance_factor < -1 && strcmp(key, node->right->key) > 0) return _simple_left_rotate(node);
+    if (balance_factor > 1 && strcmp(key, node->left->key) > 0) return _double_right_rotate(node);
+    if (balance_factor < -1 && strcmp(key, node->right->key) < 0) return _double_left_rotate(node);
 
     return node;
 }
@@ -88,6 +101,8 @@ void _free_tree(AVLNode *node) {
     if (node == NULL) return;
     _free_tree(node->left);
     _free_tree(node->right);
+    free(node->key);
+    free(node->value);
     free(node);
 }
 // LOW LEVEL FUNCTIONS =============================
@@ -105,21 +120,20 @@ AVLTree *create_avl_tree() {
     return tree;
 }
 
-AVLTree *insert_avl_tree(AVLTree *tree, int value) {
+AVLTree *insert_avl_tree(AVLTree *tree, char *key, char *value) {
     if (tree == NULL) return NULL;
-    tree->root = _insert(tree->root, value);
+    tree->root = _insert(tree->root, key, value);
+    tree->bytes_allocated += sizeof(AVLNode) + strlen(key) + strlen(value) + 2; //\0
     return tree;
 }
-
 
 void print_tree_hierarchical(AVLNode *node, int level) {
     if (node == NULL) return;
 
     for (int i = 0; i < level; i++) printf("    ");
-    printf("%d, h: %d\n", node->value, node->height);
+    printf("%s, h: %d\n", node->value, node->height);
     print_tree_hierarchical(node->right, level + 1);
     print_tree_hierarchical(node->left, level + 1);
-
 }
 
 void free_avl_tree(AVLTree *tree) {

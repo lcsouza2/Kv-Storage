@@ -3,7 +3,8 @@
 #endif
 
 typedef struct AVLNode {
-    int value;
+    char *value;
+    char *key;
     int height;
     struct AVLNode *left;
     struct AVLNode *right;
@@ -16,7 +17,7 @@ typedef struct AVLTree {
 
 AVLTree *create_avl_tree();
 
-AVLTree *insert_avl_tree(AVLTree *tree, int value);
+AVLTree *insert_avl_tree(AVLTree *tree, char *key, char *value);
 
 void print_tree_hierarchical(AVLNode *node, int level);
 
