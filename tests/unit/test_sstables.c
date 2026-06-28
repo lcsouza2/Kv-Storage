@@ -15,7 +15,6 @@ int test_create_sstable_success() {
     ASSERT_TEST(fp != NULL, "File was not created on disk");
     if (fp) fclose(fp);
 
-    remove(sstable->path);
     free(sstable->path);
     free(sstable);
 

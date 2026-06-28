@@ -27,6 +27,5 @@ int main() {
     }
 
     info("All tests passed!");
-    remove("run_tests");
     return 0;
 }
