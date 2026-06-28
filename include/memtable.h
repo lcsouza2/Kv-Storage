@@ -10,15 +10,13 @@ typedef struct AVLNode {
     struct AVLNode *right;
 } AVLNode;
 
-typedef struct AVLTree {
+typedef struct Memtable {
     AVLNode *root;
     int bytes_allocated;
-} AVLTree;
+} Memtable;
 
-AVLTree *create_avl_tree();
+Memtable *create_memtable();
 
-AVLTree *insert_avl_tree(AVLTree *tree, char *key, char *value);
+Memtable *insert_memtable(Memtable *tree, char *key, char *value);
 
-void print_tree_hierarchical(AVLNode *node, int level);
-
-void free_avl_tree(AVLTree *tree);
+void free_memtable(Memtable *tree);

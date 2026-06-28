@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "logging.h"
-#include "avl_tree.h"
+#include "memtable.h"
 
 // LOW LEVEL FUNCTIONS =============================
 int _get_height(AVLNode *node) {
@@ -109,34 +109,25 @@ void _free_tree(AVLNode *node) {
 
 
 // INTERFACE FUNCTIONS =============================
-AVLTree *create_avl_tree() {
-    AVLTree *tree = malloc(sizeof(AVLTree));
+Memtable *create_memtable() {
+    Memtable *tree = malloc(sizeof(Memtable));
     if (!tree) {
-        debug("Failed to allocate memory for AVLTree.");
+        debug("Failed to allocate memory for Memtable.");
         return NULL;
     }
     tree->root = NULL;
-    tree->bytes_allocated = sizeof(AVLTree);
+    tree->bytes_allocated = sizeof(Memtable);
     return tree;
 }
 
-AVLTree *insert_avl_tree(AVLTree *tree, char *key, char *value) {
+Memtable *insert_memtable(Memtable *tree, char *key, char *value) {
     if (tree == NULL) return NULL;
     tree->root = _insert(tree->root, key, value);
     tree->bytes_allocated += sizeof(AVLNode) + strlen(key) + strlen(value) + 2; //\0
     return tree;
 }
 
-void print_tree_hierarchical(AVLNode *node, int level) {
-    if (node == NULL) return;
-
-    for (int i = 0; i < level; i++) printf("    ");
-    printf("%s, h: %d\n", node->value, node->height);
-    print_tree_hierarchical(node->right, level + 1);
-    print_tree_hierarchical(node->left, level + 1);
-}
-
-void free_avl_tree(AVLTree *tree) {
+void free_memtable(Memtable *tree) {
     if (tree == NULL) return;
     _free_tree(tree->root);
     free(tree);
