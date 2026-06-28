@@ -7,16 +7,18 @@
 int test_create_sstable_success() {
     sstable_t *sstable = create_sstable(10, 50, 0);
 
-    ASSERT_TEST(sstable != NULL, "A struct retornou NULL");
-    ASSERT_TEST(sstable->min_key == 10, "min_key atribuída incorretamente");
-    ASSERT_TEST(sstable->level == 0, "Nível (level) atribuído incorretamente");
+    ASSERT_TEST(sstable != NULL, "Struct returned NULL");
+    ASSERT_TEST(sstable->min_key == 10, "Wrong min_key assigned");
+    ASSERT_TEST(sstable->level == 0, "Wrong level assigned");
 
     FILE *fp = fopen(sstable->path, "rb");
-    ASSERT_TEST(fp != NULL, "O arquivo físico não foi criado no disco");
+    ASSERT_TEST(fp != NULL, "File was not created on disk");
     if (fp) fclose(fp);
 
+    remove(sstable->path);
     free(sstable->path);
     free(sstable);
 
+    info("test_create_sstable_success passed.");
     return 0;
 }
