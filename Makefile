@@ -17,7 +17,7 @@ kvstore: $(OBJ) main.c
 
 test: $(OBJ)
 	$(CC) $(CFLAGS) -o run_tests tests/unit/*.c tests/main.c $(OBJ) $(LDFLAGS)
-	./run_tests
+	SSTABLE_PATH=./tests/data/sstables ./run_tests
 
 clean:
 	rm -f src/*.o kvstore run_tests
