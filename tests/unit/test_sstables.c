@@ -5,10 +5,11 @@
 #include <stdlib.h>
 
 int test_create_sstable_success() {
-    SSTable *sstable = create_sstable("Apple", "Red", 0);
+    SSTable *sstable = create_sstable_in_memory("Apple", "Red", 0);
 
     ASSERT_TEST(sstable != NULL, "Struct returned NULL");
-    ASSERT_TEST(sstable->min_key == 10, "Wrong min_key assigned");
+    ASSERT_TEST(strcmp(sstable->min_key, "Apple") == 0, "Wrong min_key assigned");
+    ASSERT_TEST(strcmp(sstable->max_key, "Red") == 0, "Wrong max_key assigned");
     ASSERT_TEST(sstable->level == 0, "Wrong level assigned");
 
     FILE *fp = fopen(sstable->path, "rb");
