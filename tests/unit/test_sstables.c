@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 int test_create_sstable_success() {
-    sstable_t *sstable = create_sstable(10, 50, 0);
+    SSTable *sstable = create_sstable("Apple", "Red", 0);
 
     ASSERT_TEST(sstable != NULL, "Struct returned NULL");
     ASSERT_TEST(sstable->min_key == 10, "Wrong min_key assigned");
