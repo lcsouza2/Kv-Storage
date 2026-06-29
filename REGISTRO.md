@@ -54,3 +54,19 @@ Consegue encontrar algum edge case ou erro de uso da linguagem?
 Ele disse que a correção tava certa e que um possível edge case seria se o strdup tentasse alocar memória e falhasse, retornando NULL.
 
 Enquanto rodava testes percebi que a falta de separação do ambiente de testes causaria um erro grave, os SSTables criadas em um teste eram armazenadas no mesmo diretório que as SSTables criadas em produção, podendo apagar dados reais na limpeza dos testes, então separei isso através de variáveis de ambiente, agora os testes criam as SSTables em um diretório separado do diretório de produção.
+
+Enquanto eu criava as funções para fazer flush da memtable para a SSTable, tive que tomar uma decisão arquitetural "complexa", então pedi ajuda para o Gemini com o prompt:
+
+```
+ Preciso tomar uma decisão arquitetural importante e gostaria da sua ajuda para decidir:
+
+A pergunta principal: O flushing dos dados deveria aocntecer nas sstables ou na memtable?
+
+Pense nesse trecho de código:
+*Código copiado e colado*
+
+para a função flush eu teria que aplicar IoC ou algo assim passando um endereço de função ou o ponteiro do arquivo para a Memtable iterar pela árvore e ir formatando e adicionando ao arquivo, avaliando essa splução eu teria:
+
+Melhor organização de código, o que é SSTable fica no módulo de SSTable e o que é Memtable fica no módulo de Memtable, em contraponto, isso criaria dispersão de tarefas de uma única função de flushing
+
+Ele concordou com a ideia o IoC, então implementei uma função que percorre a Memtable em ordem e executa um callback para cada nó
