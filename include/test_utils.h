@@ -5,7 +5,7 @@
 #define ASSERT_TEST(cond, msg) \
     do { \
         if (!(cond)) { \
-            error("[%s:%d] Falha: %s", __func__, __LINE__, msg); \
+            error("[%s:%d] Failed: %s", __func__, __LINE__, msg); \
             return -1; \
         } \
     } while (0)
