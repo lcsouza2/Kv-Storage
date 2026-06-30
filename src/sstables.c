@@ -8,138 +8,100 @@
 
 LevelIndex _fast_access_sstables[MAX_SSTABLE_LEVELS];
 
-FILE *_open_sstable(SSTable *sstable, const char *mode) {
-    if (!sstable || !sstable->path) {
-        debug("Invalid SSTable or path.");
+typedef struct _serialization_context {
+    FILE *file;
+    int error;
+} _SerializationContext;
+
+static FILE *_open_file_guarded(const char *path, const char *mode) {
+    if (!path) {
+        debug("Invalid file path.");
         return NULL;
     }
-    FILE *file = fopen(sstable->path, mode);
+    FILE *file = fopen(path, mode);
     if (!file) {
-        error("Failed to open SSTable file: %s", sstable->path);
+        error("Failed to open SSTable file: %s", path);
         return NULL;
     }
     return file;
 }
 
-char *_get_memtable_min_key(Memtable *memtable) {
-    if (!memtable || !memtable->root) return NULL;
-    AVLNode *current = memtable->root;
-    while (current->left != NULL) {
-        current = current->left;
-    }
-    return current->key;
-}
-
-
-char *_get_memtable_max_key(Memtable *memtable) {
-    if (!memtable || !memtable->root) return NULL;
-    AVLNode *current = memtable->root;
-    while (current->right != NULL) {
-        current = current->right;
-    }
-    return current->key;
-}
-
-
-char *_generate_sstable_filepath(int level) {
+static char *_generate_sstable_filepath(int level) {
     char filepath[SSTABLE_MAX_PATH_LENGTH];
+    char sstable_path[SSTABLE_MAX_PATH_LENGTH / 2];
+    get_sstable_path(sstable_path, sizeof(sstable_path));
+    int count = _fast_access_sstables[level].count;
 
     snprintf(
         filepath,
         sizeof(filepath),
         "%s/L%d_%d.dat",
-        _get_sstable_path(),
+        sstable_path,
         level,
-        _fast_access_sstables[level].count
+        count
     );
 
-    // Return a dynamically allocated string to avoid returning a Dangling Pointer since filepath
-    // is allocated in the stack and will be deallocated when the function returns.
     return strdup(filepath);
 }
 
-void _add_sstable_to_level_index(SSTable *sstable) {
+static int _add_sstable_to_level_index(SSTable *sstable) {
     if (!sstable) {
-        debug("SSTable is NULL.");
-        return;
+        debug("SSTable is NULL on _add_sstable_to_level_index.");
+        return 1;
     }
 
     int level = sstable->level;
-    if (level < 0 || level >= MAX_SSTABLE_LEVELS) {
-        debug("Invalid SSTable level: %d", level);
-        return;
-    }
-
     LevelIndex *level_index = &_fast_access_sstables[level];
 
     if (level_index->count >= level_index->capacity) {
         int new_capacity = (level_index->capacity == 0) ? 1 : level_index->capacity * 2;
         SSTable **new_tables = realloc(level_index->tables, new_capacity * sizeof(SSTable *));
         if (!new_tables) {
-            debug("Failed to reallocate memory for LevelIndex tables.");
-            return;
+            error("Failed to reallocate memory for fast access sstables.");
+            return 1;
         }
         level_index->tables = new_tables;
         level_index->capacity = new_capacity;
     }
-
     level_index->tables[level_index->count++] = sstable;
+    return 0;
 }
 
 
-SSTable *_create_sstable_in_memory(char *min_key, char *max_key, int level) {
-    SSTable *sstable = malloc(sizeof(SSTable));
-    if (!sstable) {
-        debug("Failed to allocate memory for SSTable.");
-        return NULL;
-    }
-
-    char *filepath = _generate_sstable_filepath(level);
-    if (!filepath) {
-        free(sstable);
-        debug("Failed to generate filepath for SSTable.");
-        return NULL;
-    }
-
-    sstable->path = filepath;
-    sstable->min_key = min_key;
-    sstable->max_key = max_key;
-    sstable->level = level;
-
-
-    info("sstable created on memory: %s", sstable->path);
-    return sstable;
-}
-
-
-void _write_node_to_sstable(FILE *file, AVLNode *node) {
-    if (!file || !node) return;
+static void _write_node_to_sstable_callback(AVLNode *node, void *ctx) {
+    _SerializationContext *context = (_SerializationContext *)ctx;
+    if (!context || !context->file || !context->error || !node) return;
 
     int key_length = strlen(node->key);
     int value_length = strlen(node->value);
 
-    // Write the length of the key, the key itself, the length of the value, and the value
-    fwrite(&key_length, sizeof(int), 1, file);
-    fwrite(node->key, sizeof(char), key_length, file);
+    size_t w1 = fwrite(&key_length, sizeof(int), 1, context->file);
+    size_t w2 = fwrite(node->key, sizeof(char), key_length, context->file);
+    size_t w3 = fwrite(&value_length, sizeof(int), 1, context->file);
+    size_t w4 = fwrite(node->value, sizeof(char), value_length, context->file);
 
-    fwrite(&value_length, sizeof(int), 1, file);
-    fwrite(node->value, sizeof(char), value_length, file);
+    if (w1 != 1 || w2 != (size_t)key_length || w3 != 1 || w4 != (size_t)value_length) {
+        context->error = 1;
+        error("IO error while writing node to SSTable.");
+    }
 }
 
 
-SSTable *_create_memtable_on_disk(Memtable *memtable, SSTable *sstable) {
+static int _write_memtable_to_disk(Memtable *memtable, SSTable *sstable) {
     if (!memtable || !memtable->root) {
         debug("Memtable is empty or NULL.");
-        return NULL;
+        return 1;
     }
-    char *min_key = _get_memtable_min_key(memtable);
-    char *max_key = _get_memtable_max_key(memtable);
-    FILE *file = _open_sstable(sstable, "wb");
+
+    FILE *file = _open_file_guarded(sstable->path, "wb");
     if (!file) {
         free(sstable->path);
         free(sstable);
-        return NULL;
+        return 1;
     }
+
+    char *min_key = memtable->min_key;
+    char *max_key = memtable->max_key;
 
     int min_key_length = strlen(min_key);
     int max_key_length = strlen(max_key);
@@ -150,32 +112,64 @@ SSTable *_create_memtable_on_disk(Memtable *memtable, SSTable *sstable) {
     fwrite(&max_key_length, sizeof(int), 1, file);
     fwrite(max_key, sizeof(char), max_key_length, file);
 
-    memtable_traverse_in_order(memtable->root, _write_node_to_sstable);
+    _SerializationContext context = { .file = file, .error = 0 };
+    memtable_traverse_in_order(memtable->root, _write_node_to_sstable_callback, &context);
     fclose(file);
+    return context.error;
 }
 
 // INTERFACE FUNCTIONS =============================
-SSTable *dump_memtable_to_disk(Memtable *memtable, int level) {
+
+/**
+ * Flushes the given memtable to disk as an SSTable at the specified level.
+ * Returns a pointer to the created SSTable on success, or NULL on failure.
+ * Params:
+ *   memtable (Memtable *) - pointer to memtable to flush
+ *   level (int) - the level at which to create the SSTable
+ */
+SSTable *flush_memtable_to_disk(Memtable *memtable, int level) {
     if (!memtable || !memtable->root) {
-        debug("Memtable is empty or NULL.");
+        error("Memtable is empty or NULL.");
         return NULL;
     }
 
-    char *min_key = _get_memtable_min_key(memtable);
-    char *max_key = _get_memtable_max_key(memtable);
+    if (level < 0 || level >= MAX_SSTABLE_LEVELS) {
+        error("Invalid SSTable level: %d", level);
+        return NULL;
+    }
 
-    SSTable *sstable = _create_sstable_in_memory(min_key, max_key, level);
+    SSTable *sstable = malloc(sizeof(SSTable));
     if (!sstable) {
-        debug("Failed to create SSTable in memory.");
+        error("Failed to allocate memory for SSTable.");
+        return NULL;
+    };
+
+    sstable->level = level;
+    sstable->min_key = memtable->min_key;
+    sstable->max_key = memtable->max_key;
+    sstable->path = _generate_sstable_filepath(level);
+
+    if (!sstable->path) {
+        error("Failed to generate SSTable file path.");
+        free(sstable);
         return NULL;
     }
 
-    if (_create_memtable_on_disk(memtable, sstable) == NULL) {
+    if (_write_memtable_to_disk(memtable, sstable)) {
+        error("Failed to write memtable to disk.");
         free(sstable->path);
         free(sstable);
         return NULL;
     }
 
-    info("Memtable dumped to disk as SSTable: %s", sstable->path);
+    if (_add_sstable_to_level_index(sstable)) {
+        error("Failed to add SSTable to fast access index.");
+        remove(sstable->path);
+        free(sstable->path);
+        free(sstable);
+        return NULL;
+    }
+
+    info("Memtable flushed to disk as SSTable: %s", sstable->path);
     return sstable;
 }
