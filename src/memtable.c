@@ -170,6 +170,17 @@ Memtable *create_memtable() {
     return tree;
 }
 
+void clear_memtable(Memtable *tree) {
+    if (tree == NULL) return;
+    _free_tree(tree->root);
+    if (tree->min_key) free(tree->min_key);
+    if (tree->max_key) free(tree->max_key);
+    tree->root = NULL;
+    tree->min_key = NULL;
+    tree->max_key = NULL;
+    tree->bytes_allocated = sizeof(Memtable);
+}
+
 Memtable *insert_memtable(Memtable *tree, char *key, char *value) {
     if (tree == NULL) tree = create_memtable();
     tree->root = _insert(tree->root, key, value);
@@ -238,14 +249,4 @@ void memtable_traverse_in_order(AVLNode *node, void (*callback)(AVLNode *, void 
     memtable_traverse_in_order(node->right, callback, context);
 }
 
-void clear_memtable(Memtable *tree) {
-    if (tree == NULL) return;
-    _free_tree(tree->root);
-    if (tree->min_key) free(tree->min_key);
-    if (tree->max_key) free(tree->max_key);
-    tree->root = NULL;
-    tree->min_key = NULL;
-    tree->max_key = NULL;
-    tree->bytes_allocated = sizeof(Memtable);
-}
 // INTERFACE FUNCTIONS =============================
