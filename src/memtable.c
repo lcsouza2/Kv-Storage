@@ -5,6 +5,7 @@
 #include "memtable.h"
 #include "sstables.h"
 #include "settings.h"
+#include "interface.h"
 
 // LOW LEVEL FUNCTIONS =============================
 int _get_height(AVLNode *node) {
@@ -82,7 +83,17 @@ AVLNode *_insert(AVLNode *node, char *key, char *value) {
     if (strcmp(key, node->key) > 0) node->right = _insert(node->right, key, value);
     else if (strcmp(key, node->key) < 0) node->left = _insert(node->left, key, value);
     else {
-        debug("Key already exists in the AVLNode.");
+        if (node->value != NULL) {
+            free(node->value);
+        };
+        if (value != NULL) {
+            node->value = strdup(value);
+            if (node->value == NULL) {
+                debug("Failed to allocate memory for updated value in AVLNode.");
+            }
+        } else {
+            node->value = NULL; //Tombstone
+        }
         return node;
     }
 
@@ -97,6 +108,14 @@ AVLNode *_insert(AVLNode *node, char *key, char *value) {
     if (balance_factor < -1 && strcmp(key, node->right->key) < 0) return _double_left_rotate(node);
 
     return node;
+}
+
+AVLNode *_search(AVLNode *node, char *key) {
+    if (node == NULL) return NULL;
+
+    if (strcmp(key, node->key) == 0) return node;
+    else if (strcmp(key, node->key) < 0) return _search(node->left, key);
+    else return _search(node->right, key);
 }
 
 int _update_memtable_min_max_keys(Memtable *memtable, char *key) {
@@ -154,10 +173,17 @@ Memtable *create_memtable() {
 Memtable *insert_memtable(Memtable *tree, char *key, char *value) {
     if (tree == NULL) tree = create_memtable();
     tree->root = _insert(tree->root, key, value);
-    tree->bytes_allocated += sizeof(AVLNode) + strlen(key) + strlen(value) + 2;
+
+    size_t val_len = (value != NULL) ? strlen(value) : 0;
+    tree->bytes_allocated += sizeof(AVLNode) + strlen(key) + val_len + 2;
     _update_memtable_min_max_keys(tree, key);
 
-    info("Inserted key-value pair into memtable: %s -> %s", key, value);
+    if (value) {
+        info("Inserted/Updated key-value pair into memtable: %s -> %s", key, value);
+    } else {
+        info("Inserted Tombstone into memtable for key: %s", key);
+    }
+
     if (tree->bytes_allocated > MAX_MEMTABLE_SIZE) {
         info("Memtable size exceeded threshold. Flushing to disk...");
         if (flush_memtable_to_disk(tree, 0) != 0) {
@@ -168,6 +194,41 @@ Memtable *insert_memtable(Memtable *tree, char *key, char *value) {
         }
     }
     return tree;
+}
+
+KeyValue *search_memtable(Memtable *tree, char *key) {
+    if (tree == NULL) return NULL;
+    AVLNode *node = _search(tree->root, key);
+    if (node == NULL) return NULL;
+
+    KeyValue *result = malloc(sizeof(KeyValue));
+    if (!result) {
+        debug("Failed to allocate memory for KeyValue result.");
+        return NULL;
+    }
+
+    if (node->value != NULL) {
+        result->value = strdup(node->value);
+    } else {
+        result->value = NULL; // Propaga a Tombstone em segurança
+    }
+
+    if (!result->key || ( node->value != NULL && !result->value)) {
+        debug("Failed to allocate memory for key or value in KeyValue result.");
+        if (result->key) free(result->key);
+        if (result->value) free(result->value);
+        free(result);
+        return NULL;
+    }
+
+    return result;
+}
+
+void *delete_from_memtable(Memtable *tree, char *key) {
+    if (tree == NULL) return NULL;
+    tree = insert_memtable(tree, key, NULL);
+    info("Deleted key from memtable: %s", key);
+    return NULL;
 }
 
 void memtable_traverse_in_order(AVLNode *node, void (*callback)(AVLNode *, void *), void *context) {
