@@ -4,6 +4,7 @@
 #include "logging.h"
 #include "memtable.h"
 #include "sstables.h"
+#include "settings.h"
 
 // LOW LEVEL FUNCTIONS =============================
 int _get_height(AVLNode *node) {
@@ -153,13 +154,18 @@ Memtable *create_memtable() {
 Memtable *insert_memtable(Memtable *tree, char *key, char *value) {
     if (tree == NULL) tree = create_memtable();
     tree->root = _insert(tree->root, key, value);
-    tree->bytes_allocated += sizeof(AVLNode) + strlen(key) + strlen(value) + 2; //\0
+    tree->bytes_allocated += sizeof(AVLNode) + strlen(key) + strlen(value) + 2;
     _update_memtable_min_max_keys(tree, key);
 
     info("Inserted key-value pair into memtable: %s -> %s", key, value);
-    if (tree->bytes_allocated > (1024 * 10240) * 10) { // Example threshold of 10MB
+    if (tree->bytes_allocated > MAX_MEMTABLE_SIZE) {
         info("Memtable size exceeded threshold. Flushing to disk...");
-        flush_memtable_to_disk(tree, 0);
+        if (flush_memtable_to_disk(tree, 0) != 0) {
+            error("Failed to flush memtable to disk.");
+        } else {
+            info("Memtable flushed to disk successfully.");
+            clear_memtable(tree);
+        }
     }
     return tree;
 }
@@ -171,11 +177,14 @@ void memtable_traverse_in_order(AVLNode *node, void (*callback)(AVLNode *, void 
     memtable_traverse_in_order(node->right, callback, context);
 }
 
-void free_memtable(Memtable *tree) {
+void clear_memtable(Memtable *tree) {
     if (tree == NULL) return;
     _free_tree(tree->root);
     if (tree->min_key) free(tree->min_key);
     if (tree->max_key) free(tree->max_key);
-    free(tree);
+    tree->root = NULL;
+    tree->min_key = NULL;
+    tree->max_key = NULL;
+    tree->bytes_allocated = sizeof(Memtable);
 }
 // INTERFACE FUNCTIONS =============================
