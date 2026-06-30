@@ -70,7 +70,7 @@ static int _add_sstable_to_level_index(SSTable *sstable) {
 
 static void _write_node_to_sstable_callback(AVLNode *node, void *ctx) {
     _SerializationContext *context = (_SerializationContext *)ctx;
-    if (!context || !context->file || !context->error || !node) return;
+    if (!context || !context->file || context->error || !node) return;
 
     int key_length = strlen(node->key);
     int value_length = strlen(node->value);
@@ -153,10 +153,17 @@ static KeyValue *_read_and_search_in_sstable(SSTable *sstable, char *key) {
     free(max_key);
 
     char *key_buffer = malloc(MAX_KEY_LENGTH + 1);
-    char *value_buffer = malloc(MAX_VALUE_LENGTH + 1);
     int key_len_on_disk;
 
     while (fread(&key_len_on_disk, sizeof(int), 1, file) == 1) {
+
+        if (key_len_on_disk <= 0 || key_len_on_disk > MAX_KEY_LENGTH) {
+            error("Invalid key length read from SSTable: %d", key_len_on_disk);
+            free(key_buffer);
+            fclose(file);
+            return NULL;
+        }
+
         fread(key_buffer, sizeof(char), key_len_on_disk, file);
         key_buffer[key_len_on_disk] = '\0';
 
@@ -165,11 +172,12 @@ static KeyValue *_read_and_search_in_sstable(SSTable *sstable, char *key) {
             fread(&value_length, sizeof(int), 1, file);
 
             if (value_length == -1) { // Tombstone
-                free(key_buffer); free(value_buffer);
+                free(key_buffer);
                 fclose(file);
                 return NULL;
             }
 
+            char *value_buffer = malloc(value_length + 1);
             fread(value_buffer, sizeof(char), value_length, file);
             value_buffer[value_length] = '\0';
 
@@ -181,6 +189,13 @@ static KeyValue *_read_and_search_in_sstable(SSTable *sstable, char *key) {
             free(value_buffer);
             fclose(file);
             return result;
+        } else {
+            int unused_value_length;
+            fread(&unused_value_length, sizeof(int), 1, file);
+
+            if (unused_value_length > 0) {
+                fseek(file, unused_value_length, SEEK_CUR);
+            }
         }
     }
     fclose(file);
@@ -214,8 +229,8 @@ int flush_memtable_to_disk(Memtable *memtable, int level) {
     };
 
     sstable->level = level;
-    sstable->min_key = memtable->min_key;
-    sstable->max_key = memtable->max_key;
+    sstable->min_key = strdup(memtable->min_key);
+    sstable->max_key = strdup(memtable->max_key);
     sstable->path = _generate_sstable_filepath(level);
 
     if (!sstable->path) {
