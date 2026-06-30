@@ -2,6 +2,7 @@
 #define SSTABLES_H
 #endif
 #include "memtable.h"
+#include "interface.h"
 
 typedef struct sstable {
     char *path;
@@ -17,3 +18,4 @@ typedef struct level_index {
 } LevelIndex;
 
 int flush_memtable_to_disk(Memtable *memtable, int level);
+KeyValue *search_in_sstables(char *key);
