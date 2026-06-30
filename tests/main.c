@@ -19,6 +19,7 @@ extern int test_memtable_delete_existing_key();
 extern int test_memtable_delete_nonexistent_key();
 extern int test_memtable_update_existing_key();
 extern int test_memtable_autoflush();
+extern int test_sstable_search();
 
 int main() {
     int failed = 0;
@@ -43,6 +44,7 @@ int main() {
     if (test_memtable_search_existing_key() != 0) failed++;
     if (test_memtable_search_nonexistent_key() != 0) failed++;
     if (test_memtable_autoflush() != 0) failed++;
+    if (test_sstable_search() != 0) failed++;
 
     if (failed > 0) {
         error("%d test(s) failed.", failed);
