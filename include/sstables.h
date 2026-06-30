@@ -16,4 +16,4 @@ typedef struct level_index {
     SSTable **tables;      // Array dinâmico de ponteiros para as SSTables
 } LevelIndex;
 
-SSTable *flush_memtable_to_disk(Memtable *memtable, int level);
+int flush_memtable_to_disk(Memtable *memtable, int level);
