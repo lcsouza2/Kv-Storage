@@ -76,3 +76,5 @@ Com o dump para o arquivo "pronto", implementei verificação de necessidade des
 Refatorei o código das sstables pois tava com um acoplamento absurdo e acabou com a separação de responsabilidades, agora o módulo de sstables tem um core mais estável e fornece uma interface de interação
 
 Com o código refatorado, escrevi testes para o flush e validei o funcionamento corrigindo bugs
+
+Após isso, escrevi funções para buscar e excluir chaves na memtable, não foi um problema tão grande graças, só tive que alterar as funções da árvore AVL pra adicionar tombstones e atualizar onde necessário, além de escrever testes para essas funções e validar o funcionamento
