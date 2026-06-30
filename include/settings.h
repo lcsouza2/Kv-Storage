@@ -12,6 +12,9 @@ int get_memtable_size();
 #define MAX_KEY_LENGTH 256
 #define MAX_VALUE_LENGTH 1024
 
+#define BLOOM_FILTER_SIZE_BITS 1024 // Size of the Bloom filter in bits
+#define BLOOM_FILTER_SIZE_BYTES (BLOOM_FILTER_SIZE_BITS / 8) // Size of the Bloom filter in bytes
+
 void get_sstable_path(char *buffer, size_t buffer_size);
 void get_wal_path(char *buffer, size_t buffer_size);
 int create_data_storage_directory();
