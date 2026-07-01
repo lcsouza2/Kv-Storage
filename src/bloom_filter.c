@@ -58,6 +58,10 @@ static uint32_t hash_jenkins(const char *str) {
     return hash;
 }
 
+/**
+ * @brief Creates a new Bloom filter.
+ * @return (BloomFilter *): Pointer to the newly created Bloom filter, or NULL on failure.
+ */
 BloomFilter *bloom_filter_create() {
     BloomFilter *filter = malloc(sizeof(BloomFilter));
     if (!filter) return NULL;
@@ -71,6 +75,11 @@ BloomFilter *bloom_filter_create() {
     return filter;
 }
 
+/**
+ * @brief Adds a key to the Bloom filter.
+ * @param filter (BloomFilter *): Pointer to the Bloom filter.
+ * @param key (const char *): The key to add.
+ */
 void bloom_add(BloomFilter *filter, const char *key) {
     if (!filter || !key) return;
 
@@ -83,6 +92,12 @@ void bloom_add(BloomFilter *filter, const char *key) {
     filter->bit_array[hash3 / 8] |= (1 << (hash3 % 8));
 }
 
+/**
+ * @brief Checks if a key is possibly in the Bloom filter.
+ * @param filter (BloomFilter *): Pointer to the Bloom filter.
+ * @param key (const char *): The key to check.
+ * @return (int): Returns 1 if the key is possibly in the filter, 0 if definitely not.
+ */
 int bloom_check(BloomFilter *filter, const char *key) {
     if (!filter || !key) return 0;
 
@@ -95,6 +110,10 @@ int bloom_check(BloomFilter *filter, const char *key) {
            (filter->bit_array[hash3 / 8] & (1 << (hash3 % 8)));
 }
 
+/**
+ * @brief Frees the memory allocated for the Bloom filter.
+ * @param filter (BloomFilter *): Pointer to the Bloom filter to free.
+ */
 void free_bloom_filter(BloomFilter *filter) {
     if (filter) {
         free(filter->bit_array);

@@ -258,11 +258,10 @@ static int _write_to_manifest(uint8_t opcode, SSTable *sstable) {
 // INTERFACE FUNCTIONS =============================
 
 /**
- * Flushes the given memtable to disk as an SSTable at the specified level.
- * Returns 0 on success, or -1 on failure.
- * Params:
- *   memtable (Memtable *) - pointer to memtable to flush
- *   level (int) - the level at which to create the SSTable
+ * @brief Flushes the given memtable to disk as an SSTable at the specified level.
+ * @param memtable (Memtable *): Pointer to memtable to flush.
+ * @param level (int): The level at which to create the SSTable.
+ * @return (int): 0 on success, -1 on failure.
  */
 int flush_memtable_to_disk(Memtable *memtable, int level) {
     if (!memtable || !memtable->root) {
@@ -323,6 +322,10 @@ int flush_memtable_to_disk(Memtable *memtable, int level) {
     return 0;
 }
 
+/**
+ * @brief Frees the memory allocated for an SSTable.
+ * @param sstable (SSTable *): Pointer to the SSTable to free.
+ */
 static void _free_sstable(SSTable *sstable) {
     if (sstable) {
         if (sstable->path) free(sstable->path);
@@ -333,6 +336,10 @@ static void _free_sstable(SSTable *sstable) {
     }
 }
 
+/**
+ * @brief Synchronizes SSTables from the manifest file.
+ * @return (int) 0 on success, -1 on failure.
+ */
 int sync_sstables_from_manifest() {
     char sstable_path[SSTABLE_MAX_PATH_LENGTH / 2];
     get_sstable_path(sstable_path, sizeof(sstable_path));
@@ -416,6 +423,11 @@ int sync_sstables_from_manifest() {
     return 0;
 }
 
+/**
+ * @brief Searches for a key in the SSTables across all levels.
+ * @param key (char *): The key to search for.
+ * @return (SearchResult): Struct containing the value and found status.
+ */
 SearchResult search_in_sstables(char *key) {
     SearchResult result = { .value = NULL, .found = 0 };
     for (int level = 0; level < MAX_SSTABLE_LEVELS; level++) {

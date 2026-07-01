@@ -12,18 +12,34 @@ static char *_get_data_storage_path() {
     return path;
 }
 
+// INTERFACE FUNCTIONS =============================
+
+/**
+ * @brief Retrieves the path for storing SSTables.
+ * @param buffer (char *): The buffer to store the path.
+ * @param buffer_size (size_t): The size of the buffer.
+ */
 void get_sstable_path(char *buffer, size_t buffer_size) {
     if (!buffer || buffer_size == 0) return;
     const char *base_path = _get_data_storage_path();
     snprintf(buffer, buffer_size, "%s/sstables", base_path);
 }
 
+/**
+ * @brief Retrieves the path for the Write-Ahead Log (WAL).
+ * @param buffer (char *): The buffer to store the path.
+ * @param buffer_size (size_t): The size of the buffer.
+ */
 void get_wal_path(char *buffer, size_t buffer_size) {
     if (!buffer || buffer_size == 0) return;
     const char *base_path = _get_data_storage_path();
     snprintf(buffer, buffer_size, "%s/database.wal", base_path);
 }
 
+/**
+ * @brief Creates the data storage directory and its subdirectories for SSTables and WAL.
+ * @return (int) 0 on success, -1 on failure.
+ */
 int create_data_storage_directory() {
     char sstables_path[256];
     char wal_path[256];
@@ -44,6 +60,10 @@ int create_data_storage_directory() {
     return 0;
 }
 
+/**
+ * @brief Retrieves the configured size for the Memtable.
+ * @return (int): The size of the Memtable in bytes. Defaults to 5MB if not set.
+ */
 int get_memtable_size() {
     if (getenv("MEMTABLE_SIZE")) {
         return atoi(getenv("MEMTABLE_SIZE"));

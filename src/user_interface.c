@@ -7,7 +7,8 @@
 #include "sstables.h"
 #include "utils.h"
 
-static void check_and_flush_memtable(Database *db) {
+
+static void _check_and_flush_memtable(Database *db) {
     if (db->memtable->bytes_allocated > MAX_MEMTABLE_SIZE) {
         info("Memtable threshold exceeded. Flushing...");
         if (flush_memtable_to_disk(db->memtable, 0) == 0) {
@@ -17,6 +18,16 @@ static void check_and_flush_memtable(Database *db) {
     }
 }
 
+// INTERFACE FUNCTIONS =============================
+
+
+/**
+ * @brief Inserts a key-value pair into the database.
+ * @param db (Database *): The database instance.
+ * @param key (char *): The key to be inserted.
+ * @param value (char *): The value to be inserted.
+ * @note If the key already exists, its value will be updated.
+ */
 void db_insert(Database *db, char *key, char *value) {
     if (!key || !value) {
         debug("Invalid key or value for insert operation.");
@@ -31,12 +42,18 @@ void db_insert(Database *db, char *key, char *value) {
     Memtable *tree = insert_memtable(db->memtable, key, value);
     db->memtable = tree;
 
-    check_and_flush_memtable(db);
+    _check_and_flush_memtable(db);
     GET_TIME(end);
     info("Client INSERT: %s -> %s [Completed in: %f seconds]", key, value, DIFF_TIME(start, end));
-
 }
 
+
+/**
+ * @brief Selects a value by key from the database.
+ * @param db (Database *): The database instance.
+ * @param key (char *): The key to search for.
+ * @return (char *): a pointer to the value if found, NULL otherwise.
+ */
 char *db_select(Database *db, char *key) {
     timer_type start, end;
 
@@ -59,6 +76,13 @@ char *db_select(Database *db, char *key) {
     return value;
 }
 
+/**
+ * @brief Updates a value by key in the database.
+ * @param db (Database *): The database instance.
+ * @param key (char *): The key to be updated.
+ * @param value (char *): The new value to be set.
+ * @note If the key does not exist, it will be inserted.
+ */
 void db_update(Database *db, char *key, char *value) {
     timer_type start, end;
 
@@ -68,11 +92,16 @@ void db_update(Database *db, char *key, char *value) {
     Memtable *tree = insert_memtable(db->memtable, key, value);
     db->memtable = tree;
 
-   check_and_flush_memtable(db);
+   _check_and_flush_memtable(db);
     GET_TIME(end);
     info("Client UPDATE: %s -> %s [Completed in: %f seconds]", key, value, DIFF_TIME(start, end));
 }
 
+/**
+ * @brief Deletes a key-value pair from the database.
+ * @param db (Database *): The database instance.
+ * @param key (char *): The key to be deleted.
+ */
 void db_delete(Database *db, char *key) {
     timer_type start, end;
 
@@ -82,11 +111,16 @@ void db_delete(Database *db, char *key) {
     Memtable *tree = insert_memtable(db->memtable, key, NULL);
     db->memtable = tree;
 
-    check_and_flush_memtable(db);
+    _check_and_flush_memtable(db);
     GET_TIME(end);
     info("Client DELETE: %s [Completed in: %f seconds]", key, DIFF_TIME(start, end));
 }
 
+/**
+ * @brief Synchronizes the database with the Write-Ahead Log (WAL) and SSTables during boot.
+ * @param db (Database *): The database instance.
+ * @return (int) 0 on success, -1 on failure.
+ */
 int boot_sync(Database *db) {
     if (!db) {
         error("Invalid database instance for boot sync.");

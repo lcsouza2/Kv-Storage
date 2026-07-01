@@ -71,6 +71,13 @@ static void _wal_callback(Memtable *memtable, char *key, char *value) {
 
 // INTERFACE FUNCTIONS =============================
 
+/**
+ * @brief Appends a key-value pair to the Write-Ahead Log (WAL).
+ * If the value is NULL, it indicates a deletion (tombstone).
+ * @param key (char*): The key to be logged.
+ * @param value (char*): The value to be logged. If NULL, it indicates a deletion.
+ * @return (int) 0 on success, -1 on failure.
+ */
 int append_wal_log(char *key, char *value) {
     FILE *wal_file = _open_wal_file("ab");
     if (!wal_file) return -1;
@@ -90,6 +97,10 @@ int append_wal_log(char *key, char *value) {
     return 0;
 }
 
+/**
+ * @brief Clears the Write-Ahead Log (WAL) by truncating the file.
+ * @return (int) 0 on success, -1 on failure.
+ */
 int clear_wal_logs() {
     FILE *wal_file = _open_wal_file("wb");
     if (!wal_file) return -1;
@@ -97,6 +108,11 @@ int clear_wal_logs() {
     return 0;
 }
 
+/**
+ * @brief Synchronizes the Write-Ahead Log (WAL) with the provided Memtable.
+ * @param memtable (Memtable *): The Memtable to synchronize with the WAL.
+ * @return (int) 0 on success, -1 on failure.
+ */
 int sync_wal_to_memtable(Memtable *memtable) {
     if (!memtable) {
         debug("Memtable is NULL in sync_wal_to_memtable.");

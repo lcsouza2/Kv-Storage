@@ -156,10 +156,14 @@ void _free_tree(AVLNode *node) {
     free(node->value);
     free(node);
 }
-// LOW LEVEL FUNCTIONS =============================
 
 
 // INTERFACE FUNCTIONS =============================
+
+/**
+ * @brief Creates a new Memtable.
+ * @return (Memtable *): Pointer to the newly created Memtable, or NULL on failure.
+ */
 Memtable *create_memtable() {
     Memtable *tree = malloc(sizeof(Memtable));
     if (!tree) {
@@ -173,6 +177,10 @@ Memtable *create_memtable() {
     return tree;
 }
 
+/**
+ * @brief Clears the given Memtable, freeing all associated memory.
+ * @param tree (Memtable *): Pointer to the Memtable to clear.
+ */
 void clear_memtable(Memtable *tree) {
     if (tree == NULL) return;
     _free_tree(tree->root);
@@ -184,6 +192,13 @@ void clear_memtable(Memtable *tree) {
     tree->bytes_allocated = 0;
 }
 
+/**
+ * @brief Inserts a key-value pair into the Memtable.
+ * @param tree (Memtable *): Pointer to the Memtable.
+ * @param key (char *): The key to insert.
+ * @param value (char *): The value to insert. If NULL, it indicates a deletion (tombstone).
+ * @return (Memtable *): Pointer to the updated Memtable.
+ */
 Memtable *insert_memtable(Memtable *tree, char *key, char *value) {
     if (tree == NULL) tree = create_memtable();
     tree->root = _insert(tree->root, key, value);
@@ -195,6 +210,12 @@ Memtable *insert_memtable(Memtable *tree, char *key, char *value) {
     return tree;
 }
 
+/**
+ * @brief Searches for a key in the Memtable.
+ * @param tree (Memtable *): Pointer to the Memtable.
+ * @param key (char *): The key to search for.
+ * @return (SearchResult): Struct containing the value and found status.
+ */
 SearchResult search_memtable(Memtable *tree, char *key) {
     SearchResult result = { .value = NULL, .found = 0 };
     if (tree == NULL) return result;
@@ -206,12 +227,24 @@ SearchResult search_memtable(Memtable *tree, char *key) {
     return result;
 }
 
+/**
+ * @brief Deletes a key from the Memtable by inserting a tombstone (NULL value).
+ * @param tree (Memtable *): Pointer to the Memtable.
+ * @param key (char *): The key to delete.
+ * @return (void *): Always returns NULL.
+ */
 void *delete_from_memtable(Memtable *tree, char *key) {
     if (tree == NULL) return NULL;
     tree = insert_memtable(tree, key, NULL);
     return NULL;
 }
 
+/**
+ * @brief Traverses the Memtable in-order and applies a callback function to each node.
+ * @param node (AVLNode *): Pointer to the current node.
+ * @param callback (void (*)(AVLNode *, void *)): Callback function to apply to each node.
+ * @param context (void *): Context to pass to the callback function.
+ */
 void memtable_traverse_in_order(AVLNode *node, void (*callback)(AVLNode *, void *), void *context) {
     if (node == NULL) return;
     memtable_traverse_in_order(node->left, callback, context);
@@ -219,4 +252,3 @@ void memtable_traverse_in_order(AVLNode *node, void (*callback)(AVLNode *, void 
     memtable_traverse_in_order(node->right, callback, context);
 }
 
-// INTERFACE FUNCTIONS =============================

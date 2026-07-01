@@ -4,6 +4,10 @@
 #include <time.h>
 #include "utils.h"
 
+/**
+ * @brief Reads a dynamic input from standard input.
+ * @return (char *): a pointer to the allocated string, NULL on failure.
+ */
 char *read_dynamic_input() {
     size_t capacity = 64;
     size_t length = 0;
