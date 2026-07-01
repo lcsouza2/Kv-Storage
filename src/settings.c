@@ -36,7 +36,6 @@ int create_data_storage_directory() {
         return -1;
     }
 
-    // Create the sstables directory inside the data directory
     if (mkdir(sstables_path, 0755) == -1 && errno != EEXIST) {
         error("Failed to create sstables directory");
         return -1;
