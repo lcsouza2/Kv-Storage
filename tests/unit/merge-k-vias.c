@@ -22,9 +22,7 @@ int test_merge_k_vias_success() {
     db_insert(db, "key_2", "value_2");
     db_insert(db, "key_3", "value_3");
 
-
-    const char *output_file = "test_output.sst";
-    compact_sstables(iterators, 3, output_file);
+    compact_sstables(iterators, 3, "test_output");
 
     db_select(db, "key_1");
     db_select(db, "key_2");
