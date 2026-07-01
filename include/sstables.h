@@ -9,6 +9,7 @@ typedef struct sstable {
     char *min_key;
     char *max_key;
     int level;
+    int id;
     BloomFilter *bloom_filter;
 } SSTable;
 
@@ -20,4 +21,5 @@ typedef struct level_index {
 
 int flush_memtable_to_disk(Memtable *memtable, int level);
 SearchResult search_in_sstables(char *key);
+int sync_sstables_from_manifest();
 #endif
