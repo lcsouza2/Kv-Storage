@@ -82,7 +82,7 @@ static void _write_node_to_sstable_callback(AVLNode *node, void *ctx) {
     size_t w3 = fwrite(&value_length, sizeof(int), 1, context->file);
     size_t w4 = fwrite(node->value, sizeof(char), value_length, context->file);
 
-    bloom_add(context->bloom_filter, node->key); // Add the key to the Bloom filter
+    bloom_add(context->bloom_filter, node->key);
 
     if (w1 != 1 || w2 != (size_t)key_length || w3 != 1 || w4 != (size_t)value_length) {
         context->error = -1;
@@ -123,7 +123,7 @@ static int _write_memtable_to_disk(Memtable *memtable, SSTable *sstable) {
     return context.error;
 }
 
-static KeyValue *_read_and_search_in_sstable(SSTable *sstable, char *key) {
+static char *_read_and_search_in_sstable(SSTable *sstable, char *key) {
     if (!sstable || !sstable->path || !key) {
         debug("Invalid parameters for search_in_sstable.");
         return NULL;
@@ -185,9 +185,7 @@ static KeyValue *_read_and_search_in_sstable(SSTable *sstable, char *key) {
             fread(value_buffer, sizeof(char), value_length, file);
             value_buffer[value_length] = '\0';
 
-            KeyValue *result = malloc(sizeof(KeyValue));
-            result->key = strdup(key_buffer);
-            result->value = strdup(value_buffer);
+            char *result = strdup(value_buffer);
 
             free(key_buffer);
             free(value_buffer);
@@ -263,10 +261,9 @@ int flush_memtable_to_disk(Memtable *memtable, int level) {
     return 0;
 }
 
-KeyValue *search_in_sstables(char *key) {
+char *search_in_sstables(char *key) {
     for (int level = 0; level < MAX_SSTABLE_LEVELS; level++) {
         LevelIndex *level_index = &_fast_access_sstables[level];
-
         for (int i = level_index->count - 1; i >= 0; i--) {
             SSTable *sstable = level_index->tables[i];
 
@@ -277,7 +274,7 @@ KeyValue *search_in_sstables(char *key) {
             debug("Bloom filter said 'Maybe...' to key: %s in SSTable: %s", key, sstable->path);
 
             if (sstable && strcmp(key, sstable->min_key) >= 0 && strcmp(key, sstable->max_key) <= 0) {
-                KeyValue *result = _read_and_search_in_sstable(sstable, key);
+                char *result = _read_and_search_in_sstable(sstable, key);
                 if (result) return result;
             }
         }
