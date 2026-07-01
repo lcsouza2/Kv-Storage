@@ -188,11 +188,6 @@ Memtable *insert_memtable(Memtable *tree, char *key, char *value) {
     tree->bytes_allocated += sizeof(AVLNode) + strlen(key) + val_len + 2;
     _update_memtable_min_max_keys(tree, key);
 
-    if (value) {
-        info("Inserted/Updated key-value pair into memtable: %s -> %s", key, value);
-    } else {
-        info("Inserted Tombstone into memtable for key: %s", key);
-    }
     return tree;
 }
 
@@ -207,7 +202,6 @@ char *search_memtable(Memtable *tree, char *key) {
 void *delete_from_memtable(Memtable *tree, char *key) {
     if (tree == NULL) return NULL;
     tree = insert_memtable(tree, key, NULL);
-    info("Deleted key from memtable: %s", key);
     return NULL;
 }
 
