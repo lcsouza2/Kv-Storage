@@ -18,13 +18,13 @@ int test_wal_syncing_success() {
     int sync_result = sync_wal_to_memtable(db->memtable);
     ASSERT_TEST(sync_result == 0, "Failed to sync WAL to memtable.");
 
-    char *result1 = search_memtable(db->memtable, "key1");
-    char *result2 = search_memtable(db->memtable, "key2");
-    char *result3 = search_memtable(db->memtable, "key3");
+    SearchResult result1 = search_memtable(db->memtable, "key1");
+    SearchResult result2 = search_memtable(db->memtable, "key2");
+    SearchResult result3 = search_memtable(db->memtable, "key3");
 
-    ASSERT_TEST(result1 != NULL && strcmp(result1, "value1") == 0, "Key 'key1' not found or value mismatch.");
-    ASSERT_TEST(result2 != NULL && strcmp(result2, "value2") == 0, "Key 'key2' not found or value mismatch.");
-    ASSERT_TEST(result3 != NULL && strcmp(result3, "value3") == 0, "Key 'key3' not found or value mismatch.");
+    ASSERT_TEST(result1.found == 1 && result1.value != NULL && strcmp(result1.value, "value1") == 0, "Key 'key1' not found or value mismatch.");
+    ASSERT_TEST(result2.found == 1 && result2.value != NULL && strcmp(result2.value, "value2") == 0, "Key 'key2' not found or value mismatch.");
+    ASSERT_TEST(result3.found == 1 && result3.value != NULL && strcmp(result3.value, "value3") == 0, "Key 'key3' not found or value mismatch.");
 
     clear_memtable(db->memtable);
     free(db->memtable);

@@ -66,3 +66,20 @@ int test_sstable_level_select() {
     free(db);
     return 0;
 }
+
+int test_delete_inserts_tombstone() {
+    Database *db = malloc(sizeof(Database));
+    db->memtable = NULL;
+
+    db_insert(db, "key1", "value1");
+    db_delete(db, "key1");
+
+    char *value = db_select(db, "key1");
+    ASSERT_TEST(value == NULL, "Deleted key should return NULL on select.");
+
+    success("test_delete_inserts_tombstone passed.");
+    clear_memtable(db->memtable);
+    free(db->memtable);
+    free(db);
+    return 0;
+}

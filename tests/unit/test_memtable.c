@@ -73,9 +73,10 @@ int test_memtable_update_existing_key() {
     Memtable *memtable = insert_memtable(NULL, "key1", "value1");
     insert_memtable(memtable, "key1", "value2"); // Update existing key
 
-    char *result = search_memtable(memtable, "key1");
-    ASSERT_TEST(result != NULL, "Search result should not be NULL for existing key.");
-    ASSERT_TEST(strcmp(result, "value2") == 0, "Value for 'key1' should be updated to 'value2'.");
+    SearchResult result = search_memtable(memtable, "key1");
+    ASSERT_TEST(result.found == 1, "Search result should be marked as found for existing key.");
+    ASSERT_TEST(result.value != NULL, "Search result value should not be NULL for existing key.");
+    ASSERT_TEST(strcmp(result.value, "value2") == 0, "Value for 'key1' should be updated to 'value2'.");
     success("test_memtable_update_existing_key passed.");
     clear_memtable(memtable);
     free(memtable);
@@ -87,8 +88,9 @@ int test_memtable_delete_existing_key() {
     insert_memtable(memtable, "key1", "value1");
     delete_from_memtable(memtable, "key1");
 
-    char *result = search_memtable(memtable, "key1");
-    ASSERT_TEST(result == NULL, "Value for deleted key should be NULL (tombstone).");
+    SearchResult result = search_memtable(memtable, "key1");
+    ASSERT_TEST(result.found == 1, "Deleted key should still be present as a tombstone.");
+    ASSERT_TEST(result.value == NULL, "Value for deleted key should be NULL (tombstone).");
     success("test_memtable_delete_existing_key passed.");
     clear_memtable(memtable);
     free(memtable);
@@ -99,8 +101,9 @@ int test_memtable_delete_nonexistent_key() {
     Memtable *memtable = insert_memtable(NULL, "key1", "value1");
     delete_from_memtable(memtable, "nonexistent_key");
 
-    char *result = search_memtable(memtable, "nonexistent_key");
-    ASSERT_TEST(result == NULL, "Search result should be NULL for nonexistent key.");
+    SearchResult result = search_memtable(memtable, "nonexistent_key");
+    ASSERT_TEST(result.found == 1, "Search result should return 1 indicanting a tombstone.");
+    ASSERT_TEST(result.value == NULL, "Search result value should be NULL for nonexistent key.");
     success("test_memtable_delete_nonexistent_key passed.");
     clear_memtable(memtable);
     free(memtable);
@@ -110,8 +113,9 @@ int test_memtable_delete_nonexistent_key() {
 int test_memtable_search_nonexistent_key() {
     Memtable *memtable = insert_memtable(NULL, "key1", "value1");
 
-    char *result = search_memtable(memtable, "nonexistent_key");
-    ASSERT_TEST(result == NULL, "Search result should be NULL for nonexistent key.");
+    SearchResult result = search_memtable(memtable, "nonexistent_key");
+    ASSERT_TEST(result.found == 0, "Search result should not be marked as found for nonexistent key.");
+    ASSERT_TEST(result.value == NULL, "Search result value should be NULL for nonexistent key.");
     success("test_memtable_search_nonexistent_key passed.");
     clear_memtable(memtable);
     free(memtable);
@@ -121,9 +125,10 @@ int test_memtable_search_nonexistent_key() {
 int test_memtable_search_existing_key() {
     Memtable *memtable = insert_memtable(NULL, "key1", "value1");
 
-    char *result = search_memtable(memtable, "key1");
-    ASSERT_TEST(result != NULL, "Search result should not be NULL for existing key.");
-    ASSERT_TEST(strcmp(result, "value1") == 0, "Value for 'key1' should be 'value1'.");
+    SearchResult result = search_memtable(memtable, "key1");
+    ASSERT_TEST(result.found == 1, "Search result should be marked as found for existing key.");
+    ASSERT_TEST(result.value != NULL, "Search result value should not be NULL for existing key.");
+    ASSERT_TEST(strcmp(result.value, "value1") == 0, "Value for 'key1' should be 'value1'.");
     success("test_memtable_search_existing_key passed.");
     clear_memtable(memtable);
     free(memtable);

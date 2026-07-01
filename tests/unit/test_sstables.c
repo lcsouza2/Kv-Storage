@@ -33,10 +33,11 @@ int test_sstable_search() {
     db->memtable = NULL;
     db_insert(db, "special_key", large_af_str);
 
-    char *result = search_in_sstables("special_key");
+    SearchResult result = search_in_sstables("special_key");
 
-    ASSERT_TEST(result != NULL, "Search result should not be NULL for existing key in SSTables.");
-    ASSERT_TEST(strcmp(result, large_af_str) == 0, "Value for 'special_key' should match the inserted value in SSTables.");
+    ASSERT_TEST(result.found == 1, "Search result should be marked as found for existing key in SSTables.");
+    ASSERT_TEST(result.value != NULL, "Search result value should not be NULL for existing key in SSTables.");
+    ASSERT_TEST(strcmp(result.value, large_af_str) == 0, "Value for 'special_key' should match the inserted value in SSTables.");
 
     success("test_sstable_search passed.");
 

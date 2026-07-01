@@ -25,6 +25,7 @@ extern int test_bloom_filter_accepts_existing_key();
 extern int test_wal_syncing_success();
 extern int test_memtable_level_select();
 extern int test_sstable_level_select();
+extern int test_delete_inserts_tombstone();
 
 int main() {
     int failed = 0;
@@ -55,6 +56,8 @@ int main() {
     if (test_wal_syncing_success() != 0) failed++;
     if (test_memtable_level_select() != 0) failed++;
     if (test_sstable_level_select() != 0) failed++;
+    if (test_delete_inserts_tombstone() != 0) failed++;
+
 
     if (failed > 0) {
         error("%d test(s) failed.", failed);
