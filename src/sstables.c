@@ -465,3 +465,47 @@ SearchResult search_in_sstables(char *key) {
     }
     return result;
 }
+
+int register_new_sstable(int level, int id, char *min_key, char *max_key, BloomFilter *bloom_filter) {
+    if (level < 0 || level >= MAX_SSTABLE_LEVELS) {
+        error("Invalid SSTable level: %d", level);
+        return -1;
+    }
+
+    SSTable *sstable = malloc(sizeof(SSTable));
+    if (!sstable) {
+        error("Failed to allocate memory for SSTable.");
+        return -1;
+    }
+
+    BloomFilter *bloom_filter_copy = bloom_filter_create();
+
+    if (!bloom_filter_copy) {
+        error("Failed to create Bloom filter for SSTable.");
+        free(sstable);
+        return -1;
+    }
+
+    sstable->level = level;
+    sstable->id = id;
+    sstable->min_key = strdup(min_key);
+    sstable->max_key = strdup(max_key);
+    sstable->path = _generate_sstable_filepath(level, id);
+    memcpy(bloom_filter_copy->bit_array, bloom_filter->bit_array, BLOOM_FILTER_SIZE_BYTES);
+    sstable->bloom_filter = bloom_filter_copy;
+    free_bloom_filter(bloom_filter);
+
+
+    if (_add_sstable_to_level_index(sstable)) {
+        error("Failed to add SSTable to fast access index.");
+        _free_sstable(sstable);
+        return -1;
+    }
+
+    if (_write_to_manifest(0x01, sstable)) {
+        error("Failed to write SSTable metadata to manifest.");
+        _free_sstable(sstable);
+        return -1;
+    }
+    return 0;
+}

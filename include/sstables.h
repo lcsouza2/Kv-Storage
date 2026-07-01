@@ -22,4 +22,5 @@ typedef struct level_index {
 int flush_memtable_to_disk(Memtable *memtable, int level);
 SearchResult search_in_sstables(char *key);
 int sync_sstables_from_manifest();
+int register_new_sstable(int level, int id, char *min_key, char *max_key, BloomFilter *bloom_filter);
 #endif
