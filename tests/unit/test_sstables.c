@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "settings.h"
+#include "user_interface.h"
 
 int test_flush_memtable_to_disk_success() {
     Memtable *memtable = insert_memtable(NULL, "key1", "value1");
@@ -24,22 +25,24 @@ int test_flush_memtable_to_disk_success() {
 }
 
 int test_sstable_search() {
-    char *large_af_str = malloc(MAX_VALUE_LENGTH + 1);
-    memset(large_af_str, 'A', MAX_VALUE_LENGTH);
-    large_af_str[MAX_VALUE_LENGTH] = '\0';
+    char *large_af_str = malloc(MAX_MEMTABLE_SIZE + 1);
+    memset(large_af_str, 'A', MAX_MEMTABLE_SIZE);
+    large_af_str[MAX_MEMTABLE_SIZE] = '\0';
 
-    Memtable *memtable = insert_memtable(NULL, "special_key", large_af_str);
+    Database *db = malloc(sizeof(Database));
+    db->memtable = NULL;
+    db_insert(db, "special_key", large_af_str);
 
-    KeyValue *result = search_in_sstables("special_key");
+    char *result = search_in_sstables("special_key");
 
     ASSERT_TEST(result != NULL, "Search result should not be NULL for existing key in SSTables.");
-    ASSERT_TEST(strcmp(result->value, large_af_str) == 0, "Value for 'special_key' should match the inserted value in SSTables.");
+    ASSERT_TEST(strcmp(result, large_af_str) == 0, "Value for 'special_key' should match the inserted value in SSTables.");
 
     success("test_sstable_search passed.");
 
-    free(result);
     free(large_af_str);
-    clear_memtable(memtable);
-    free(memtable);
+    clear_memtable(db->memtable);
+    free(db->memtable);
+    free(db);
     return 0;
 }
