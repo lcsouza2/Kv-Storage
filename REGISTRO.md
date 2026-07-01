@@ -113,4 +113,6 @@ Ele me deu um bloco de código que usava CLOCK_MONOTONIC, mas por ser uma defini
 
 Com o perf counter implementado, comecei a implementar as funções de interface de usuário, que chamam as funções da memtable e das SSTables, e também fazem logging das operações. Depois de implementar essas funções, comecei a escrever testes para elas e passaram sem problemas.
 
-O próximo passo é implementar o merge k-vias, que é o processo de compactação das SSTables entre os níveis e do display all keys. Mas antes, vou fazer um menu para a aplicação, documentar e proteger algumas funções com static e _ antes do nome.
+O próximo passo é implementar o merge k-vias, que é o processo de compactação das SSTables entre os níveis e do display all keys. Mas antes, vou fazer os logs de DEBUG serem opcionais, depois vou fazer um menu para a aplicação, documentar e proteger algumas funções com static e _ antes do nome.
+
+Bug lógico implementando testes: db_select() interpreta valores NULL como não encontrado e manda a responsablidade pras sstables, mas na verdade o valor NULL é um tombstone, então db_select() deveria retornar NULL e não mandar a responsabilidade pras sstables. Corrigi isso usando a struct SearchResult, que tem um campo "found" que indica se a chave foi encontrada ou não, e um campo "value" que indica o valor da chave, que pode ser NULL se a chave for um tombstone.
