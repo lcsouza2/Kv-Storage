@@ -5,34 +5,90 @@
 #include "wal.h"
 #include "user_interface.h"
 #include "sstables.h"
+#include "utils.h"
 
-void db_insert(Database *db, const char *key, const char *value) {
-    append_wal_log(key, value);
-
-    Memtable *tree = insert_memtable(db->memtable, (char *)key, (char *)value);
-    db->memtable = tree;
-
-    if (value) info("Client INSERT: %s -> %s", key, value);
-    else info("Client DELETE: %s", key);
-
-    if (tree->bytes_allocated > MAX_MEMTABLE_SIZE) {
+static void check_and_flush_memtable(Database *db) {
+    if (db->memtable->bytes_allocated > MAX_MEMTABLE_SIZE) {
         info("Memtable threshold exceeded. Flushing...");
-        if (flush_memtable_to_disk(tree, 0) == 0) {
-            clear_memtable(tree);
+        if (flush_memtable_to_disk(db->memtable, 0) == 0) {
+            clear_memtable(db->memtable);
             clear_wal_logs();
         }
     }
 }
 
-void init_database(Database *db) {
-    db->memtable = create_memtable();
-    if (!db->memtable) {
-        error("Failed to initialize memtable.");
+void db_insert(Database *db, char *key, char *value) {
+    if (!key || !value) {
+        debug("Invalid key or value for insert operation.");
         return;
     }
-    sync_wal_to_memtable(db->memtable);
+
+    timer_type start, end;
+
+    GET_TIME(start);
+    append_wal_log(key, value);
+
+    Memtable *tree = insert_memtable(db->memtable, key, value);
+    db->memtable = tree;
+
+    check_and_flush_memtable(db);
+    GET_TIME(end);
+    info("Client INSERT: %s -> %s [Completed in: %f seconds]", key, value, DIFF_TIME(start, end));
+
 }
 
+char *db_select(Database *db, char *key) {
+    timer_type start, end;
+
+    GET_TIME(start);
+    char *value = search_memtable(db->memtable, key);
+    if (!value) {
+        debug("Key not found in memtable, searching in SSTables...");
+        value = search_in_sstables(key);
+    }
+    GET_TIME(end);
+
+    if (value) {
+        info("Client SELECT key: %s [Completed in: %f seconds]", key, DIFF_TIME(start, end));
+    } else {
+        debug("Key not found in memtable, searching in SSTables...");
+        info("Client SELECT: Key not found: %s [Completed in: %f seconds]", key, DIFF_TIME(start, end));
+    }
+    return value;
+}
+
+void db_update(Database *db, char *key, char *value) {
+    timer_type start, end;
+
+    GET_TIME(start);
+    append_wal_log(key, value);
+
+    Memtable *tree = insert_memtable(db->memtable, key, value);
+    db->memtable = tree;
+
+   check_and_flush_memtable(db);
+    GET_TIME(end);
+    info("Client UPDATE: %s -> %s [Completed in: %f seconds]", key, value, DIFF_TIME(start, end));
+}
+
+void db_delete(Database *db, char *key) {
+    timer_type start, end;
+
+    GET_TIME(start);
+    append_wal_log(key, NULL);
+
+    Memtable *tree = insert_memtable(db->memtable, key, NULL);
+    db->memtable = tree;
+
+    check_and_flush_memtable(db);
+    GET_TIME(end);
+    info("Client DELETE: %s [Completed in: %f seconds]", key, DIFF_TIME(start, end));
+}
+
+void boot_sync(Database *db) {
+    sync_wal_to_memtable(db->memtable);
+    // index_sstables(); // This function is not implemented yet, but it will be used to index the existing SSTables for faster search.
+}
 
 void clear() {
     printf("\033[H\033[J");
@@ -50,38 +106,3 @@ void print_main_menu() {
 }
 
 
-int main() {
-    Database *db = malloc(sizeof(Database));
-    init_database(db);
-
-    while (1) {
-        print_main_menu();
-        int choice;
-        scanf("%d", &choice);
-        switch (choice) {
-            case 1:
-                char key[MAX_KEY_LENGTH];
-                char value[1];
-                db_put(db, key, value);
-                break;
-            case 2:
-                // Get Value by Key
-                break;
-            case 3:
-                // Update Value by Key
-                break;
-            case 4:
-                // Delete Key-Value Pair
-                break;
-            case 5:
-                // Display All Key-Value Pairs
-                break;
-            case 6:
-                printf("Exiting...\n");
-                return 0;
-            default:
-                printf("Invalid option. Please try again.\n");
-        }
-    }
-    return 0;
-}
