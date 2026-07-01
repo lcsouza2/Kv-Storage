@@ -87,9 +87,22 @@ void db_delete(Database *db, char *key) {
     info("Client DELETE: %s [Completed in: %f seconds]", key, DIFF_TIME(start, end));
 }
 
-void boot_sync(Database *db) {
-    sync_wal_to_memtable(db->memtable);
-    // index_sstables(); // This function is not implemented yet, but it will be used to index the existing SSTables for faster search.
+int boot_sync(Database *db) {
+    if (!db) {
+        error("Invalid database instance for boot sync.");
+        return -1;
+    }
+
+    if (sync_wal_to_memtable(db->memtable)) {
+        error("Failed to sync WAL to memtable during boot.");
+        return -1;
+    }
+
+    if (sync_sstables_from_manifest()) {
+        error("Failed to sync SSTables from manifest during boot.");
+        return -1;
+    }
+    return 0;
 }
 
 void clear() {
