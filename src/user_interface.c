@@ -41,14 +41,16 @@ char *db_select(Database *db, char *key) {
     timer_type start, end;
 
     GET_TIME(start);
-    char *value = search_memtable(db->memtable, key);
-    if (!value) {
+    SearchResult result = search_memtable(db->memtable, key);
+    char *value = result.value;
+    if (!result.found) {
         debug("Key not found in memtable, searching in SSTables...");
-        value = search_in_sstables(key);
+        result = search_in_sstables(key);
+        value = result.value;
     }
     GET_TIME(end);
 
-    if (value) {
+    if (value || result.found) {
         info("Client SELECT key: %s [Completed in: %f seconds]", key, DIFF_TIME(start, end));
     } else {
         debug("Key not found in memtable, searching in SSTables...");
