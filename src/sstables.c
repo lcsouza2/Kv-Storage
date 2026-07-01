@@ -74,17 +74,29 @@ static void _write_node_to_sstable_callback(AVLNode *node, void *ctx) {
     _SerializationContext *context = (_SerializationContext *)ctx;
     if (!context || !context->file || context->error || !node) return;
 
-    int key_length = strlen(node->key);
-    int value_length = strlen(node->value);
+    int key_length = (node->key) ? (int)strlen(node->key) : 0;
+    int value_length = (node->value) ? (int)strlen(node->value) : -1; // -1 indicates a tombstone
 
     size_t w1 = fwrite(&key_length, sizeof(int), 1, context->file);
-    size_t w2 = fwrite(node->key, sizeof(char), key_length, context->file);
+    size_t w2 = 0;
+    if (key_length > 0) {
+        w2 = fwrite(node->key, sizeof(char), key_length, context->file);
+    }
+
     size_t w3 = fwrite(&value_length, sizeof(int), 1, context->file);
-    size_t w4 = fwrite(node->value, sizeof(char), value_length, context->file);
+    size_t w4 = 0;
+    if (value_length > 0) {
+        w4 = fwrite(node->value, sizeof(char), value_length, context->file);
+    }
 
-    bloom_add(context->bloom_filter, node->key);
+    if (context->bloom_filter && node->key) {
+        bloom_add(context->bloom_filter, node->key);
+    }
 
-    if (w1 != 1 || w2 != (size_t)key_length || w3 != 1 || w4 != (size_t)value_length) {
+    size_t expected_w2 = (key_length > 0) ? (size_t)key_length : 0;
+    size_t expected_w4 = (value_length > 0) ? (size_t)value_length : 0;
+
+    if (w1 != 1 || w2 != expected_w2 || w3 != 1 || w4 != expected_w4) {
         context->error = -1;
         error("IO error while writing node to SSTable.");
     }
