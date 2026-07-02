@@ -10,7 +10,6 @@
 
 static void _check_and_flush_memtable(Database *db) {
     if (db->memtable->bytes_allocated > MAX_MEMTABLE_SIZE) {
-        info("Memtable threshold exceeded. Flushing...");
         if (flush_memtable_to_disk(db->memtable, 0) == 0) {
             clear_memtable(db->memtable);
             clear_wal_logs();
@@ -70,7 +69,6 @@ char *db_select(Database *db, char *key) {
     if (value || result.found) {
         info("Client SELECT key: %s [Completed in: %f seconds]", key, DIFF_TIME(start, end));
     } else {
-        debug("Key not found in memtable, searching in SSTables...");
         info("Client SELECT: Key not found: %s [Completed in: %f seconds]", key, DIFF_TIME(start, end));
     }
     return value;
