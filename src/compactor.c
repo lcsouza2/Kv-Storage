@@ -21,8 +21,8 @@ static void *compactor_worker_loop(void *arg) {
             break;
         }
         needs_compaction = 0;
-        pthread_mutex_unlock(&compactor_mutex);
         check_and_compact_sstables(0);
+        pthread_mutex_unlock(&compactor_mutex);
     }
     return NULL;
 }

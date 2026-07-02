@@ -33,8 +33,7 @@ static FILE *_open_file_guarded(const char *path, const char *mode) {
     return file;
 }
 
-static int _add_sstable_to_level_index(SSTable *sstable) {
-    pthread_mutex_lock(&_sstable_mutex);
+static int _add_sstable_to_level_index_unlocked(SSTable *sstable) {
     if (!sstable) {
         debug("SSTable is NULL on _add_sstable_to_level_index.");
         return -1;
@@ -54,8 +53,14 @@ static int _add_sstable_to_level_index(SSTable *sstable) {
         level_index->capacity = new_capacity;
     }
     level_index->tables[level_index->count++] = sstable;
-    pthread_mutex_unlock(&_sstable_mutex);
     return 0;
+}
+
+static int _add_sstable_to_level_index(SSTable *sstable) {
+    pthread_mutex_lock(&_sstable_mutex);
+    int result = _add_sstable_to_level_index_unlocked(sstable);
+    pthread_mutex_unlock(&_sstable_mutex);
+    return result;
 }
 
 static void _write_node_to_sstable_callback(AVLNode *node, void *ctx) {
@@ -305,13 +310,6 @@ int flush_memtable_to_disk(Memtable *memtable, int level) {
         return -1;
     }
 
-    if (_write_memtable_to_disk(memtable, sstable)) {
-        error("Failed to write memtable to disk.");
-        free(sstable->path);
-        free(sstable);
-        return -1;
-    }
-
     if (_write_to_manifest(0x01, sstable)) {
         error("Failed to write SSTable metadata to manifest.");
         remove(sstable->path);
@@ -320,13 +318,23 @@ int flush_memtable_to_disk(Memtable *memtable, int level) {
         return -1;
     }
 
-    if (_add_sstable_to_level_index(sstable)) {
+    if (_write_memtable_to_disk(memtable, sstable)) {
+        error("Failed to write memtable to disk.");
+        free(sstable->path);
+        free(sstable);
+        return -1;
+    }
+
+    pthread_mutex_lock(&_sstable_mutex);
+    if (_add_sstable_to_level_index_unlocked(sstable)) {
         error("Failed to add SSTable to fast access index.");
         remove(sstable->path);
         free(sstable->path);
         free(sstable);
         return -1;
     }
+    pthread_mutex_unlock(&_sstable_mutex);
+
 
     info("Memtable flushed to disk as SSTable: %s", sstable->path);
     trigger_background_compaction();
