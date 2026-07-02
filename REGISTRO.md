@@ -152,3 +152,4 @@ Implementei uma função recursiva que verifica se as sstables precisam de merge
 Quando escrevi testes pra essas funções eu descobri uns leaks bizarros, aí eu precisei instalar a libasan pra debuggar, e tome, 5MB de RAM vazados por que eu esquecia de limpar alguns dados nos testes
 
 Implementei um menu pro usuário, compilou, tá tudo funcionando, por incrível que pareça, agora vou implementar paralelismo
+Tô conseguindo fazer aqui, tô travando mutex em vários lugares diferentes e eu já tenho uma trhead worker rodando o compactador quando necessário, mas apareceu um bug, por algum motivo desconhecido o L4 das sstables não existe, o código pula do L3 pro L5
