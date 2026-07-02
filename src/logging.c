@@ -43,6 +43,7 @@ void error(const char *format, ...) {
 }
 
 void debug(const char *format, ...) {
+    if (!DEBUG_LOGS) return; // Skip debug logs if disabled
     va_list args;
     va_start(args, format);
     _print_log("\033[36mDEBUG\033[0m", format, args);
