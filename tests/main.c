@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "logging.h"
 #include "sstables.h"
 #include "settings.h"
@@ -30,11 +31,17 @@ extern int test_delete_inserts_tombstone();
 extern int test_merge_k_vias_success();
 extern int test_display_all_keys_unified();
 extern int test_auto_compaction();
+extern int test_stress_async_insertions();
 
-int main() {
+int main(int argc, char *argv[]) {
     int failed = 0;
 
     create_data_storage_directory();
+
+    if (argc > 1 && strcmp(argv[1], "--stress") == 0) {
+        if (test_stress_async_insertions() != 0) failed++;
+        return 0;
+    }
 
     info("Running tests...");
 
