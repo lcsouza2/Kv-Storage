@@ -227,6 +227,22 @@ SearchResult search_memtable(Memtable *tree, char *key) {
     return result;
 }
 
+static void _display_all_callback(AVLNode *node, void *ctx) {
+    ctx = ctx;
+    if (node && node->key) {
+        printf("%s\n", node->key);
+    }
+}
+
+void display_all_keys_in_memtable(Memtable *tree) {
+    if (tree == NULL || tree->root == NULL) {
+        return;
+    }
+
+    printf("Keys in Memtable:\n");
+    memtable_traverse_in_order(tree->root, _display_all_callback, NULL);
+}
+
 /**
  * @brief Deletes a key from the Memtable by inserting a tombstone (NULL value).
  * @param tree (Memtable *): Pointer to the Memtable.

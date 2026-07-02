@@ -18,14 +18,10 @@ typedef struct memtable {
 } Memtable;
 
 Memtable *create_memtable();
-
 Memtable *insert_memtable(Memtable *tree, char *key, char *value);
-
 SearchResult search_memtable(Memtable *tree, char *key);
-
 void *delete_from_memtable(Memtable *tree, char *key);
-
+void display_all_keys_in_memtable(Memtable *tree);
 void memtable_traverse_in_order(AVLNode *node, void (*callback)(AVLNode *, void *), void *context);
-
 void clear_memtable(Memtable *tree);
 #endif
