@@ -153,3 +153,7 @@ Quando escrevi testes pra essas funções eu descobri uns leaks bizarros, aí eu
 
 Implementei um menu pro usuário, compilou, tá tudo funcionando, por incrível que pareça, agora vou implementar paralelismo
 Tô conseguindo fazer aqui, tô travando mutex em vários lugares diferentes e eu já tenho uma trhead worker rodando o compactador quando necessário, mas apareceu um bug, por algum motivo desconhecido o L4 das sstables não existe, o código pula do L3 pro L5
+
+Descobri que não tava pulando, só que quando a thread worker tá fazendo merge no stress test é um fluxo de dados tão avassalador que o L4 é criado e deletado tão rápido que parece estar sendo ignorado, pra comprovar eu adicionei uns debugs rapidinho na função, se o nível fosse 4 ele printava uma pensagem lá, aí eu pude ter certeza que ta só o filé a aplicação.
+
+Agora que tá tudo rodando bonitinho, fiz um slide no gamma, vou implementar o teste de benchmark, gravar o vídeo e escrever o relatório, e se Deus quiser, dormir pelo menos 15 minutos pq apresentar virado é sinistro
