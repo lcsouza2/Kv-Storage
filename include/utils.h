@@ -21,4 +21,5 @@ typedef struct {
 #endif
 
 char *read_dynamic_input();
+char *generate_sstable_filepath(int level, int id);
 #endif
