@@ -7,6 +7,7 @@
 #include "sstables.h"
 #include "utils.h"
 #include "k_way_iterator.h"
+#include "compactor.h"
 
 
 static void _check_and_flush_memtable(Database *db) {
@@ -147,18 +148,20 @@ int boot_sync(Database *db) {
         error("Failed to sync SSTables from manifest during boot.");
         return -1;
     }
+
+    init_background_compactor();
     return 0;
 }
 
-int display_all_keys(Database *db) {
+void display_all_keys(Database *db) {
     if (!db || !db->memtable) {
         error("Invalid database or memtable for displaying keys.");
-        return -1;
+        return;
     }
 
     display_all_keys_in_memtable(db->memtable);
     display_all_keys_unified();
-    return 0;
+    return;
 }
 
 void clear() {
