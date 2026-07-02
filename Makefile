@@ -31,3 +31,9 @@ test: $(OBJ)
 clean:
 	rm -f src/*.o kvstore run_tests
 	rm -f *.dat L*/*.dat
+
+perf:
+	$(CC) -Wall -Wextra -O3 -pthread -I./include \
+		-o run_perf $(SRC) scripts/benchmark.c
+	DATA_PATH=./tests/data MEMTABLE_SIZE=1024 MAX_LOG_LEN=128 DEBUG_LOGS=0 ./run_perf
+	rm -rf run_perf ./tests/data
