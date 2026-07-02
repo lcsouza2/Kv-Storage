@@ -146,3 +146,7 @@ Tô implementando o merge k-vias, reaproveitei alguns códigos do Gemini e do Co
 
 Faltam algumas horas pras apresentações do trabalho e eu ainda preciso verificar memory leaks, fazer o relatório e gravar o vídeo. Então não tenho escrito muito nesse arquivo.
 Mas as últimas alterações foram em torno do k-vias iteration, que usa um MinHeap pra iterar pelas sstables, desacoplei o MinHeap do resto, agora o MinHeap é uma estrutura de dados burra que só sabe gerenciar a estrutura de dados, a lógica de negócios é passada pra ele através de callbacks e gerenciada pelo módulo de k-vias iteration. Implementei o level compactor e depois disso o display all keys, o display all keys foi bobeira, reutilizei muito código do compactor, só que ao invés de escrever pra um arquivo eu escrevia pro stdout. Além disso, implementei alguns utilitários de testes.
+
+Implementei uma função recursiva que verifica se as sstables precisam de merge usando a variável de limite de arquivos de SSTable, agora quando a memtable é persistida em disco, a função de verificação é chamada e caso seja necessário, o merge k-vias é chamado (infelizmente na mesma thread por enquanto)
+
+Quando escrevi testes pra essas funções eu descobri uns leaks bizarros, aí eu precisei instalar a libasan pra debuggar, e tome, 5MB de RAM vazados por que eu esquecia de limpar alguns dados nos testes
