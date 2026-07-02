@@ -30,23 +30,6 @@ static FILE *_open_file_guarded(const char *path, const char *mode) {
     return file;
 }
 
-static char *_generate_sstable_filepath(int level, int id) {
-    char filepath[SSTABLE_MAX_PATH_LENGTH];
-    char sstable_path[SSTABLE_MAX_PATH_LENGTH / 2];
-    get_sstable_path(sstable_path, sizeof(sstable_path));
-
-    snprintf(
-        filepath,
-        sizeof(filepath),
-        "%s/L%d_%d.dat",
-        sstable_path,
-        level,
-        id
-    );
-
-    return strdup(filepath);
-}
-
 static int _add_sstable_to_level_index(SSTable *sstable) {
     if (!sstable) {
         debug("SSTable is NULL on _add_sstable_to_level_index.");
@@ -266,7 +249,6 @@ static int _write_to_manifest(uint8_t opcode, SSTable *sstable) {
     return 0;
 }
 
-
 // INTERFACE FUNCTIONS =============================
 
 /**
@@ -298,7 +280,7 @@ int flush_memtable_to_disk(Memtable *memtable, int level) {
     sstable->min_key = strdup(memtable->min_key);
     sstable->max_key = strdup(memtable->max_key);
     sstable->id = id;
-    sstable->path = _generate_sstable_filepath(level, id);
+    sstable->path = generate_sstable_filepath(level, id);
     sstable->bloom_filter = bloom_filter_create();
 
     if (!sstable->path) {
@@ -397,7 +379,7 @@ int sync_sstables_from_manifest() {
             sstable->min_key = min_key;
             sstable->max_key = max_key;
 
-            sstable->path = _generate_sstable_filepath(level, id);
+            sstable->path = generate_sstable_filepath(level, id);
 
             sstable->bloom_filter = bloom_filter_create();
             if (sstable->bloom_filter && sstable->bloom_filter->bit_array) {
@@ -490,7 +472,7 @@ int register_new_sstable(int level, int id, char *min_key, char *max_key, BloomF
     sstable->id = id;
     sstable->min_key = strdup(min_key);
     sstable->max_key = strdup(max_key);
-    sstable->path = _generate_sstable_filepath(level, id);
+    sstable->path = generate_sstable_filepath(level, id);
     memcpy(bloom_filter_copy->bit_array, bloom_filter->bit_array, BLOOM_FILTER_SIZE_BYTES);
     sstable->bloom_filter = bloom_filter_copy;
     free_bloom_filter(bloom_filter);
@@ -508,4 +490,47 @@ int register_new_sstable(int level, int id, char *min_key, char *max_key, BloomF
         return -1;
     }
     return 0;
+}
+
+int delete_sstable(int level, int id) {
+    if (level < 0 || level >= MAX_SSTABLE_LEVELS) {
+        error("Invalid SSTable level: %d", level);
+        return -1;
+    }
+
+    LevelIndex *level_index = &_fast_access_sstables[level];
+    for (int i = 0; i < level_index->count; i++) {
+        SSTable *sstable = level_index->tables[i];
+        if (sstable && sstable->id == id) {
+            if (_write_to_manifest(0x02, sstable)) {
+                error("Failed to write SSTable deletion to manifest.");
+                return -1;
+            }
+
+            if (remove(sstable->path) != 0) {
+                warning("Failed to delete physical file %s, but manifest was updated.", sstable->path);
+            }
+
+            _free_sstable(sstable);
+
+            for (int j = i; j < level_index->count - 1; j++) {
+                level_index->tables[j] = level_index->tables[j + 1];
+            }
+            level_index->tables[level_index->count - 1] = NULL;
+            level_index->count--;
+
+
+            return 0;
+        }
+    }
+    // error("SSTable L%d_%d.dat not found for deletion.", level, id);
+    return -1;
+}
+
+int get_sstable_count(int level) {
+    if (level < 0 || level >= MAX_SSTABLE_LEVELS) {
+        error("Invalid SSTable level: %d", level);
+        return -1;
+    }
+    return _fast_access_sstables[level].count;
 }
