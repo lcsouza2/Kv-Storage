@@ -136,10 +136,10 @@ Comecei a implementar, apareceram vários problemas, commitei tudo com [WIP] nos
 O que falta implementar para o merge k-vias ficar lindo:
 - [*] Limitar o tamanho dos arquivos pra 10 * nível * tamanho_da_memtable
 - [*] Escrever testes
-- [ ] Adicionar um watcher que verifica a quantidade de arquivos em cada nível e chama o merge k-vias numa thread paralela quando necessário
+- [*] Adicionar um watcher que verifica a quantidade de arquivos em cada nível e chama o merge k-vias numa thread paralela quando necessário
 - [*] Implementar o display all keys, que vai usar das mesmas funções de iteração k-vias
 - [*] Adicionar contador de limite de tamanho de arquivo, na função de compactar sstables
-- [ ] Implementar o menu do usuário
+- [*] Implementar o menu do usuário
 
 Acabei de receber a notícia de que o Bruno não vai adiar o trabalho, então provável que essa madrugada seja a base de café e código.
 Tô implementando o merge k-vias, reaproveitei alguns códigos do Gemini e do Copilot, o módulo virou uma sopa imanutenível, vou ser obrigado a refatorar
@@ -150,3 +150,5 @@ Mas as últimas alterações foram em torno do k-vias iteration, que usa um MinH
 Implementei uma função recursiva que verifica se as sstables precisam de merge usando a variável de limite de arquivos de SSTable, agora quando a memtable é persistida em disco, a função de verificação é chamada e caso seja necessário, o merge k-vias é chamado (infelizmente na mesma thread por enquanto)
 
 Quando escrevi testes pra essas funções eu descobri uns leaks bizarros, aí eu precisei instalar a libasan pra debuggar, e tome, 5MB de RAM vazados por que eu esquecia de limpar alguns dados nos testes
+
+Implementei um menu pro usuário, compilou, tá tudo funcionando, por incrível que pareça, agora vou implementar paralelismo
