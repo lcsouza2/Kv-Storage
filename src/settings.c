@@ -71,6 +71,12 @@ int get_memtable_size() {
     return 5242880; // Default to 5MB if not set
 }
 
+int get_debug_logs() {
+    if (getenv("DEBUG_LOGS")) {
+        return atoi(getenv("DEBUG_LOGS"));
+    }
+    return 0; // Default to 0 (disabled) if not set
+}
 
 int get_max_log_len() {
     if (getenv("MAX_LOG_LEN")) {

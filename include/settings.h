@@ -2,6 +2,7 @@
 #define SETTINGS_H
 int get_memtable_size();
 int get_max_log_len();
+int get_debug_logs();
 #include <stdlib.h>
 
 #define MAX_SSTABLE_LEVEL_FILES 5
@@ -10,6 +11,7 @@ int get_max_log_len();
 #define SSTABLE_MAX_PATH_LENGTH 256
 #define WAL_MAX_PATH_LENGTH 256
 #define MAX_LOG_LEN get_max_log_len()
+#define DEBUG_LOGS get_debug_logs()
 
 #define MAX_KEY_LENGTH 256
 

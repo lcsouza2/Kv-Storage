@@ -2,14 +2,17 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <pthread.h>
 #include "settings.h"
 #include "logging.h"
 #include "sstables.h"
 #include "memtable.h"
 #include "bloom_filter.h"
 #include "utils.h"
+#include "compactor.h"
 
 LevelIndex _fast_access_sstables[MAX_SSTABLE_LEVELS];
+pthread_mutex_t _sstable_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct _serialization_context {
     FILE *file;
@@ -31,6 +34,7 @@ static FILE *_open_file_guarded(const char *path, const char *mode) {
 }
 
 static int _add_sstable_to_level_index(SSTable *sstable) {
+    pthread_mutex_lock(&_sstable_mutex);
     if (!sstable) {
         debug("SSTable is NULL on _add_sstable_to_level_index.");
         return -1;
@@ -50,6 +54,7 @@ static int _add_sstable_to_level_index(SSTable *sstable) {
         level_index->capacity = new_capacity;
     }
     level_index->tables[level_index->count++] = sstable;
+    pthread_mutex_unlock(&_sstable_mutex);
     return 0;
 }
 
@@ -283,7 +288,9 @@ int flush_memtable_to_disk(Memtable *memtable, int level) {
         return -1;
     };
 
+    pthread_mutex_lock(&_sstable_mutex);
     int id = _fast_access_sstables[level].count;
+    pthread_mutex_unlock(&_sstable_mutex);
 
     sstable->level = level;
     sstable->min_key = strdup(memtable->min_key);
@@ -322,7 +329,7 @@ int flush_memtable_to_disk(Memtable *memtable, int level) {
     }
 
     info("Memtable flushed to disk as SSTable: %s", sstable->path);
-    check_and_compact_sstables(0);
+    trigger_background_compaction();
     return 0;
 }
 
@@ -508,12 +515,15 @@ int delete_sstable(int level, int id) {
         return -1;
     }
 
+    pthread_mutex_lock(&_sstable_mutex);
+
     LevelIndex *level_index = &_fast_access_sstables[level];
     for (int i = 0; i < level_index->count; i++) {
         SSTable *sstable = level_index->tables[i];
         if (sstable && sstable->id == id) {
             if (_write_to_manifest(0x02, sstable)) {
                 error("Failed to write SSTable deletion to manifest.");
+                pthread_mutex_unlock(&_sstable_mutex);
                 return -1;
             }
 
@@ -529,18 +539,22 @@ int delete_sstable(int level, int id) {
             level_index->tables[level_index->count - 1] = NULL;
             level_index->count--;
 
-
+            pthread_mutex_unlock(&_sstable_mutex);
             return 0;
         }
     }
-    // error("SSTable L%d_%d.dat not found for deletion.", level, id);
+    pthread_mutex_unlock(&_sstable_mutex);
     return -1;
 }
 
 int get_sstable_count(int level) {
+    pthread_mutex_lock(&_sstable_mutex);
     if (level < 0 || level >= MAX_SSTABLE_LEVELS) {
         error("Invalid SSTable level: %d", level);
+        pthread_mutex_unlock(&_sstable_mutex);
         return -1;
     }
-    return _fast_access_sstables[level].count;
+    int count = _fast_access_sstables[level].count;
+    pthread_mutex_unlock(&_sstable_mutex);
+    return count;
 }

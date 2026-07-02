@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -Werror -I./include
-LDFLAGS =
+CFLAGS = -Wall -Wextra -Werror -fsanitize=address -I./include
+LDFLAGS = -fsanitize=address
 
 # Lista explícita dos fontes
 SRC = $(wildcard src/*.c)
@@ -12,12 +12,20 @@ all: kvstore
 src/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+
+stress:
+	$(CC) -Wall -Wextra -Werror -g -fsanitize=thread -pthread -I./include \
+		-o run_stress $(SRC) tests/unit/*.c tests/stress/*.c tests/main.c
+	DATA_PATH=./tests/data MEMTABLE_SIZE=1024 MAX_LOG_LEN=128 DEBUG_LOGS=0 ./run_stress --stress
+	rm -rf run_stress ./tests/data
+
+
 kvstore: $(OBJ) main.c
-	$(CC) $(CFLAGS) -o kvstore main.c $(OBJ) $(LDFLAGS)
+	$(CC) $(CFLAGS) -pthread  -o kvstore main.c $(OBJ) $(LDFLAGS)
 
 test: $(OBJ)
-	$(CC) $(CFLAGS) -fsanitize=address -g -o run_tests tests/unit/*.c tests/main.c $(OBJ) $(LDFLAGS)
-	DATA_PATH=./tests/data MEMTABLE_SIZE=1024 MAX_LOG_LEN=128 ./run_tests
+	$(CC) $(CFLAGS) -fsanitize=address -g -o run_tests tests/unit/*.c tests/stress/*.c tests/main.c $(OBJ) $(LDFLAGS)
+	DATA_PATH=./tests/data MEMTABLE_SIZE=1024 MAX_LOG_LEN=128 DEBUG_LOGS=1 ./run_tests
 	rm -rf run_tests ./tests/data
 
 clean:
