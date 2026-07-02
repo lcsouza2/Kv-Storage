@@ -129,7 +129,7 @@ void compact_sstables(int num_iters, int level_to_merge) {
 
     FILE *output_pointer = NULL;
     long current_file_size = 0;
-    int file_count = 0;
+    int file_count = get_sstable_count(level_to_merge + 1);
     char sstable_path[SSTABLE_MAX_PATH_LENGTH / 2];
     char output_path[256];
 
@@ -146,8 +146,17 @@ void compact_sstables(int num_iters, int level_to_merge) {
         return;
     }
 
+    int *real_ids = malloc(sizeof(int) * num_iters);
+
+    pthread_mutex_lock(&_sstable_mutex);
+    LevelIndex *level_idx = &_fast_access_sstables[level_to_merge];
+    for(int i = 0; i < num_iters && i < level_idx->count; i++) {
+        real_ids[i] = level_idx->tables[i]->id;
+    }
+    pthread_mutex_unlock(&_sstable_mutex);
+
     for (int i = 0; i < num_iters; i++) {
-        SSTableIterator *tmp = _iterator_init(i, level_to_merge);
+        SSTableIterator *tmp = _iterator_init(real_ids[i], level_to_merge);
         if (!tmp) {
             for (int j = 0; j < i; j++) {
                 fclose(iters[j]->file);
@@ -244,6 +253,7 @@ void compact_sstables(int num_iters, int level_to_merge) {
     free(iters);
     free(heap->nodes);
     free(heap);
+    free(real_ids);
 
     info("Compaction of level %d completed successfully.", level_to_merge);
 }
