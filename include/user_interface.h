@@ -8,6 +8,7 @@ typedef struct key_value {
 
 typedef struct database {
     Memtable *memtable;
+    int is_running;
 } Database;
 
 void db_insert(Database *db, char *key, char *value);
