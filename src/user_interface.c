@@ -6,6 +6,7 @@
 #include "user_interface.h"
 #include "sstables.h"
 #include "utils.h"
+#include "k_way_iterator.h"
 
 
 static void _check_and_flush_memtable(Database *db) {
@@ -120,9 +121,21 @@ void db_delete(Database *db, char *key) {
  * @return (int) 0 on success, -1 on failure.
  */
 int boot_sync(Database *db) {
+    if (create_data_storage_directory()) {
+        error("Failed to create data storage directory.");
+        return -1;
+    }
+
     if (!db) {
         error("Invalid database instance for boot sync.");
         return -1;
+    }
+
+    db->memtable = create_memtable();
+    if (!db->memtable) {
+        error("Failed to initialize memtable.");
+        free(db);
+        return EXIT_FAILURE;
     }
 
     if (sync_wal_to_memtable(db->memtable)) {
@@ -137,18 +150,34 @@ int boot_sync(Database *db) {
     return 0;
 }
 
+int display_all_keys(Database *db) {
+    if (!db || !db->memtable) {
+        error("Invalid database or memtable for displaying keys.");
+        return -1;
+    }
+
+    display_all_keys_in_memtable(db->memtable);
+    display_all_keys_unified();
+    return 0;
+}
+
 void clear() {
     printf("\033[H\033[J");
 }
 
-void print_main_menu() {
+void display_separator() {
+    printf("========================================\n");
+}
+
+void display_menu() {
     printf("=== Main Menu ===\n");
     printf("1. Add Key-Value Pair\n");
     printf("2. Get Value by Key\n");
     printf("3. Update Value by Key\n");
     printf("4. Delete Key-Value Pair\n");
-    printf("5. Display All Key-Value Pairs\n");
-    printf("6. Exit\n");
+    printf("5. Display All Keys\n");
+    printf("6. Clear Screen\n");
+    printf("7. Exit\n");
     printf("Choose an option: ");
 }
 
