@@ -24,7 +24,7 @@ static FILE *_open_file_guarded(const char *path, const char *mode) {
     }
     FILE *file = fopen(path, mode);
     if (!file) {
-        error("Failed to open SSTable file: %s", path);
+        error("Failed to open file: %s", path);
         return NULL;
     }
     return file;
@@ -352,8 +352,8 @@ int sync_sstables_from_manifest() {
 
     FILE *manifest_file = _open_file_guarded(manifest_path, "rb");
     if (!manifest_file) {
-        error("Failed to open manifest file for reading: %s", manifest_path);
-        return -1;
+        warning("Failed to open manifest file for reading: %s. Assuming first boot and continuing.", manifest_path);
+        return 0;
     }
 
     uint8_t opcode;

@@ -11,7 +11,7 @@ static FILE *_open_wal_file(char *mode) {
     get_wal_path(wal_path, sizeof(wal_path));
     FILE *file = fopen(wal_path, mode);
     if (!file) {
-        error("Failed to open WAL file: %s", wal_path);
+        warning("Failed to open WAL file: %s. Assuming first boot and continuing.", wal_path);
         return NULL;
     }
     return file;
