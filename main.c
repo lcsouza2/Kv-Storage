@@ -14,6 +14,7 @@ static char *prompt_input(const char *prompt) {
 
 int main() {
     Database *db = malloc(sizeof(Database));
+    db->is_running = 1;
 
     if (!db) {
         error("Failed to allocate database instance.");
@@ -85,6 +86,7 @@ int main() {
         }
     }
 
+    db->is_running = 0;
     clear_memtable(db->memtable);
     free(db->memtable);
     free(db);
