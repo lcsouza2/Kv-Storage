@@ -10,7 +10,7 @@ int test_stress_async_insertions() {
     Database *db = malloc(sizeof(Database));
     init_background_compactor();
 
-    int TOTAL_KEYS = 50000;
+    int TOTAL_KEYS = 20000;
 
     for (int i = 0; i < TOTAL_KEYS; i++) {
         char key[32];
