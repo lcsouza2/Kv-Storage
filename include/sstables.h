@@ -1,8 +1,10 @@
 #ifndef SSTABLES_H
 #define SSTABLES_H
+#include <pthread.h>
 #include "memtable.h"
 #include "bloom_filter.h"
 #include "utils.h"
+#include "settings.h"
 
 typedef struct sstable {
     char *path;
@@ -18,6 +20,9 @@ typedef struct level_index {
     int capacity;
     SSTable **tables;
 } LevelIndex;
+
+extern LevelIndex _fast_access_sstables[MAX_SSTABLE_LEVELS];
+extern pthread_mutex_t _sstable_mutex;
 
 int flush_memtable_to_disk(Memtable *memtable, int level);
 SearchResult search_in_sstables(char *key);
