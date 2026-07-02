@@ -15,7 +15,7 @@ int get_debug_logs();
 
 #define MAX_KEY_LENGTH 256
 
-#define BLOOM_FILTER_SIZE_BITS 1024 // Size of the Bloom filter in bits
+#define BLOOM_FILTER_SIZE_BITS 2097152 // Size of the Bloom filter in bits
 #define BLOOM_FILTER_SIZE_BYTES (BLOOM_FILTER_SIZE_BITS / 8) // Size of the Bloom filter in bytes
 
 void get_sstable_path(char *buffer, size_t buffer_size);
