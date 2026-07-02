@@ -29,6 +29,7 @@ extern int test_sstable_level_select();
 extern int test_delete_inserts_tombstone();
 extern int test_merge_k_vias_success();
 extern int test_display_all_keys_unified();
+extern int test_auto_compaction();
 
 int main() {
     int failed = 0;
@@ -80,6 +81,9 @@ int main() {
     clear_sstables_after_test();
 
     if (test_display_all_keys_unified() != 0) failed++;
+    clear_sstables_after_test();
+
+    if (test_auto_compaction() != 0) failed++;
     clear_sstables_after_test();
 
     if (failed > 0) {

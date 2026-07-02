@@ -61,6 +61,7 @@ int test_sstable_level_select() {
     ASSERT_TEST(value1 && strcmp(value1, large_af_str) == 0, "Value for key1 should be 'AAAAAA...' from SSTable.");
 
     success("test_sstable_level_select passed.");
+    free(value1);
     free(large_af_str);
     free(db->memtable);
     free(db);
@@ -78,6 +79,7 @@ int test_delete_inserts_tombstone() {
     ASSERT_TEST(value == NULL, "Deleted key should return NULL on select.");
 
     success("test_delete_inserts_tombstone passed.");
+    free(value);
     clear_memtable(db->memtable);
     free(db->memtable);
     free(db);

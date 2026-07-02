@@ -17,10 +17,10 @@ int test_flush_memtable_to_disk_success() {
     ASSERT_TEST(result == 0, "Failed to flush memtable to disk.");
 
     // Clean up
-    remove("./tests/data/sstables/L0_0.dat");
     clear_memtable(memtable);
 
     success("test_flush_memtable_to_disk_success passed.");
+    free(memtable);
     return 0;
 }
 
@@ -42,6 +42,7 @@ int test_sstable_search() {
     success("test_sstable_search passed.");
 
     free(large_af_str);
+    free(result.value);
     clear_memtable(db->memtable);
     free(db->memtable);
     free(db);
